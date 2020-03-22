@@ -1,12 +1,11 @@
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name="jdb",
     version="0.0.1",
     description="jdb",
     author="thejchap",
-    package_dir={"": "src"},
-    packages=find_packages(where="src"),
+    packages=["jdb"],
     install_requires=[
         "black==19.10b0",
         "flake8==3.7.9",
