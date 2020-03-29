@@ -1,7 +1,8 @@
 # jdb
 
 ## todo
-- CRC
+- WAL
+- Index
 
 ## resources
 - https://www.usenix.org/system/files/conference/fast16/fast16-papers-lu.pdf
@@ -11,3 +12,4 @@
 - https://github.com/dgraph-io/badger
 - https://github.com/facebook/rocksdb
 - https://en.wikipedia.org/wiki/Cyclic_redundancy_check
+- https://github.com/facebook/rocksdb/wiki/RocksDB-In-Memory-Workload-Performance-Benchmarks

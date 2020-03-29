@@ -2,30 +2,31 @@ from typing import Optional, Generator
 from math import ceil
 import uvarint
 from .entry import Entry
-
-
-class Options:
-    max_table_size: Optional[int] = 64 << 20
+from .errors import NotFound, LogOverflow
 
 
 class Db:
-    _log: bytearray = bytearray()
-
-    def __init__(self, options: Options = Options()):
-        self.opts = options
+    def __init__(self, max_table_size: int = 128 << 20):
+        self.max_table_size = max_table_size
+        self._log = bytearray()
 
     def put(self, key: bytes, value: bytes) -> bool:
-        entry = Entry(key=key, value=value)
-        self._log += entry.encode()
+        entry = Entry(key=key, value=value).encode()
+
+        if len(self._log) + len(entry) > self.max_table_size:
+            raise LogOverflow()
+
+        self._log += entry
         return True
 
     def get(self, key: bytes) -> Optional[bytes]:
-        stack = list([x for x in self.scan() if x.key == key])
+        stack = reversed([x for x in self.scan() if x.key == key])
+        head = next(stack)
 
-        if not len(stack) or stack[-1].isdeleted:
-            return None
+        if not head or head.isdeleted:
+            raise NotFound()
 
-        return stack[-1].value
+        return head.value
 
     def scan(self) -> Generator[Entry, None, None]:
         offset = 0

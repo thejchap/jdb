@@ -1,6 +1,7 @@
-from pytest import fixture, mark
+from pytest import fixture, mark, raises
 from jdb.db import Db
 from jdb.entry import Entry
+from jdb.errors import LogOverflow, NotFound
 
 
 @fixture
@@ -10,7 +11,9 @@ def db() -> Db:
 
 def test_put_and_get_basic(db):
     db.put(b"hello", b"world")
-    assert db.get(b"hello") == b"world"
+    val = db.get(b"hello")
+
+    assert val == b"world"
 
 
 def test_delete_basic(db):
@@ -22,8 +25,12 @@ def test_delete_basic(db):
     db.delete(b"hel")
     db.put(b"foo", b"baz")
 
-    assert not db.get(b"hello")
-    assert not db.get(b"hel")
+    with raises(NotFound):
+        db.get(b"hello")
+
+    with raises(NotFound):
+        db.get(b"hel")
+
     assert db.get(b"foo")
 
 
@@ -34,7 +41,9 @@ def test_encode_decode(key, value, meta):
     assert Entry.decode(encoded) == entry
 
 
-# TODO
-@mark.skip
 def test_overflow():
-    pass
+    smalldb = Db(max_table_size=256)
+    smalldb.put(bytearray(128), bytearray(0))
+
+    with raises(LogOverflow):
+        smalldb.put(bytearray(128), bytearray(0))
