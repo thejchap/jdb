@@ -8,7 +8,7 @@ install:
 	@pip install -r requirements.txt
 
 typecheck:
-	@mypy src
+	@mypy .
 
 test:
 	@pytest tests

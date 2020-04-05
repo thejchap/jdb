@@ -1,12 +1,12 @@
 from pytest import fixture, mark, raises
-from jdb.db import Db
+from jdb.db import DB
 from jdb.entry import Entry
-from jdb.errors import LogOverflow, NotFound
+from jdb.errors import TableOverflow, NotFound
 
 
 @fixture
-def db() -> Db:
-    return Db()
+def db() -> DB:
+    return DB()
 
 
 def test_put_and_get_basic(db):
@@ -42,8 +42,8 @@ def test_encode_decode(key, value, meta):
 
 
 def test_overflow():
-    smalldb = Db(max_table_size=256)
+    smalldb = DB(max_table_size=256)
     smalldb.put(bytearray(128), bytearray(0))
 
-    with raises(LogOverflow):
+    with raises(TableOverflow):
         smalldb.put(bytearray(128), bytearray(0))

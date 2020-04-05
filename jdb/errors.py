@@ -1,14 +1,10 @@
-class JdbError(Exception):
+class ChecksumMismatch(Exception):
     pass
 
 
-class ChecksumMismatch(JdbError):
+class TableOverflow(Exception):
     pass
 
 
-class LogOverflow(JdbError):
-    pass
-
-
-class NotFound(JdbError):
+class NotFound(Exception):
     pass
