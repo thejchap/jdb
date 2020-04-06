@@ -4,6 +4,7 @@ import uvarint
 from .entry import Entry
 from .errors import TableOverflow
 from .avltree import AVLTree
+from .compression import Compression
 
 Key = bytes
 Offset = int
@@ -19,15 +20,16 @@ def _comparator(a: IndexEntry, b: IndexEntry) -> int:
 
 
 class Memtable:
-    def __init__(self, max_size: int):
+    def __init__(self, max_size: int, compression: Compression):
         self.max_size = max_size
+        self._compression = compression
         self._arena = bytearray()
         self._entries_count = 0
         self._offset = 0
         self._index = AVLTree[IndexEntry](comparator=_comparator)
 
     def insert(self, entry: Entry) -> None:
-        encoded = entry.encode()
+        encoded = entry.encode(compression=self._compression)
         size = len(encoded)
 
         if self.size() + size > self.max_size:
@@ -66,4 +68,7 @@ class Memtable:
         block_size = uvarint.cut(1, self._arena[offset:]).integers[0]
         block_end = offset + block_size + ceil(block_size.bit_length() / 8)
         bytes_read = block_end - offset
-        return (Entry.decode(self._arena[offset:block_end]), bytes_read)
+        chunk = self._arena[offset:block_end]
+        decoded = Entry.decode(chunk, compression=self._compression)
+
+        return (decoded, bytes_read)

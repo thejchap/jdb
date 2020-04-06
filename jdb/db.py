@@ -1,11 +1,19 @@
+from typing import Optional
 from .entry import Entry
 from .errors import NotFound
 from .memtable import Memtable
+from .compression import CompressionType, Compression
 
 
 class DB:
-    def __init__(self, max_table_size: int = 128 << 20):
-        self._memtable = Memtable(max_size=max_table_size)
+    def __init__(
+        self,
+        max_table_size: int = 128 << 20,
+        compression: Optional[CompressionType] = CompressionType.LZ4,
+    ):
+        self._memtable = Memtable(
+            max_size=max_table_size, compression=Compression(compression)
+        )
 
     def put(self, key: bytes, value: bytes) -> None:
         entry = Entry(key=key, value=value)

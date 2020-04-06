@@ -1,8 +1,10 @@
 from __future__ import annotations
+from typing import Optional
 import uvarint
 from binascii import crc32
 from dataclasses import dataclass
 from .errors import ChecksumMismatch
+from .compression import Compression
 
 
 @dataclass
@@ -14,7 +16,7 @@ class Entry:
     meta: int = 0
 
     @classmethod
-    def decode(cls, buf: bytes) -> Entry:
+    def decode(cls, buf: bytes, compression: Optional[Compression] = None) -> Entry:
         """
         1. decode header
         2. use header metadata to decode body
@@ -27,6 +29,7 @@ class Entry:
         _, meta, keylen, valuelen = decoded.integers
         key = bytes(body[0:keylen])
         value = bytes(body[keylen : keylen + valuelen])
+
         checksum_bytes = body[keylen + valuelen :]
         checksum = uvarint.decode(checksum_bytes).integer
         header = cls._encode_header(key=key, value=value, meta=meta)
@@ -37,6 +40,10 @@ class Entry:
         if checksum != check:
             raise ChecksumMismatch()
 
+        if compression and compression.isenabled:
+            key = compression.decompress(key)
+            value = compression.decompress(value)
+
         return Entry(key=key, value=value, meta=meta)
 
     @property
@@ -45,7 +52,7 @@ class Entry:
 
         return self.meta & self.TOMBSTONE == 1
 
-    def encode(self) -> bytes:
+    def encode(self, compression: Optional[Compression] = None) -> bytes:
         """
         byte array representation of log entry.
         append CRC32 checksum of header and k/v
@@ -55,13 +62,19 @@ class Entry:
         -----------------------------------------------------------------------
         """
 
-        header = self._encode_header(key=self.key, value=self.value, meta=self.meta)
+        key, value, meta = self.key, self.value, self.meta
+
+        if compression and compression.isenabled:
+            key = compression.compress(key)
+            value = compression.compress(value)
+
+        header = self._encode_header(key=key, value=value, meta=meta)
         checksum = crc32(header)
         encoded = bytearray(header)
-        checksum = crc32(self.key, checksum)
-        encoded += self.key
-        checksum = crc32(self.value, checksum)
-        encoded += self.value
+        checksum = crc32(key, checksum)
+        encoded += key
+        checksum = crc32(value, checksum)
+        encoded += value
         encoded += uvarint.encode(checksum)
         block_size = uvarint.encode(len(encoded))
 

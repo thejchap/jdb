@@ -5,7 +5,8 @@ lint:
 	@flake8 .
 
 install:
-	@pip install -r requirements.txt
+	@export CPPFLAGS="-I$(brew --cellar snappy)/1.1.8/include -L$(brew --cellar snappy)/1.1.8/lib" && \
+		pip install -r requirements.txt
 
 typecheck:
 	@mypy .

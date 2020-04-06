@@ -12,5 +12,7 @@ setup(
         "mypy==0.770",
         "pytest==5.3.5",
         "uvarint==v1.2.0",
+        "lz4tools==1.3.1.2",
+        "python-snappy==0.5.4",
     ],
 )

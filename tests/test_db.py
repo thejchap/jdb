@@ -42,8 +42,16 @@ def test_encode_decode(key, value, meta):
 
 
 def test_overflow():
-    smalldb = DB(max_table_size=256)
+    smalldb = DB(max_table_size=256, compression=None)
     smalldb.put(bytearray(128), bytearray(0))
 
     with raises(TableOverflow):
         smalldb.put(bytearray(128), bytearray(0))
+
+
+def test_compression(db):
+    value = ("hello " * 1000 + "world " * 1000).encode("utf-8")
+    key = b"hello"
+    db.put(key, value)
+
+    assert db.get(key) == value
