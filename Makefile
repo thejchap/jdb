@@ -14,6 +14,12 @@ typecheck:
 test:
 	@pytest tests
 
+cli:
+	@python3 jdb/cli.py
+
+server:
+	@python3 jdb/server.py
+
 benchmark:
 	time python -c "from tests.benchmark import fill; fill()"
 	python -m timeit "from tests.benchmark import put" "put()"

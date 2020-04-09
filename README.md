@@ -19,3 +19,4 @@ a database for fun
 - https://github.com/facebook/rocksdb/wiki/RocksDB-In-Memory-Workload-Performance-Benchmarks
 - http://www.cs.cornell.edu/Projects/ladis2009/papers/Lakshman-ladis2009.PDF
 - https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
+- https://redis.io/topics/protocol

@@ -1,34 +1,22 @@
 from __future__ import annotations
-from typing import TypeVar, Generic, Callable, Optional
+from dataclasses import dataclass
+from typing import TypeVar, Generic, Callable, Optional, Any
 
 T = TypeVar("T")
-Comparator = Callable[[T, T], int]
+Comparator = Callable[[Any, T, T], int]
 
 
+@dataclass
 class Node(Generic[T]):
+    key: T
+    comparator: Comparator
     left: Optional[Node[T]] = None
     right: Optional[Node[T]] = None
-    key: T
-
-    def __init__(self, key: T, comparator: Comparator):
-        self.key = key
-        self.height = 0
-        self.balance_factor = 0
-        self._cmp = comparator
-
-    def __str__(self):
-        k, l, r, h, bf = (
-            self.key,
-            self.left,
-            self.right,
-            self.height,
-            self.balance_factor,
-        )
-
-        return f"Node(key={k}, left={l}, right={r}, height={h}, balance_factor={bf})"
+    height: int = 0
+    balance_factor: int = 0
 
     def search(self, key: T) -> Optional[T]:
-        cmp = self._cmp(key, self.key)
+        cmp = self.comparator(key, self.key)
 
         if cmp < 0:
             return self.left.search(key) if self.left else None
@@ -38,7 +26,7 @@ class Node(Generic[T]):
         return self.key
 
     def insert(self, node: Node[T]) -> None:
-        cmp = self._cmp(node.key, self.key)
+        cmp = self.comparator(node.key, self.key)
 
         if cmp == 0:
             self.key = node.key
