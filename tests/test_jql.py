@@ -1,9 +1,15 @@
-from jdb.jql import Grammar
+from pytest import fixture
+from jdb.jql import JQL
 
 
-def test_grammar():
-    res = Grammar.parse("PUT hello world;")
+@fixture
+def jql():
+    return JQL()
+
+
+def test_parse(jql: JQL):
+    res = jql.parse("PUT hello world;")
 
     assert res["key"] == "hello"
     assert res["value"] == "world"
-    assert res["operation"] == "PUT"
+    assert res["op"] == "PUT"

@@ -20,3 +20,4 @@ a database for fun
 - http://www.cs.cornell.edu/Projects/ladis2009/papers/Lakshman-ladis2009.PDF
 - https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
 - https://redis.io/topics/protocol
+- https://github.com/antirez/redis/blob/96a54866ab4694cf338af0441f28aa69e9643376/src/server.c
