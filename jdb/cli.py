@@ -1,7 +1,7 @@
 from asyncio import open_connection, run
 from asyncio.streams import StreamReader, StreamWriter
 from argparse import ArgumentParser
-from jdb.jql import TERMINATOR, EXIT
+from jdb.jql import TERMINATOR
 
 
 def _prompt(prompt: str):
@@ -39,9 +39,13 @@ async def _async_main():
     except KeyboardInterrupt:
         pass
 
-    writer.write(f"{EXIT};".encode())
-    await writer.drain()
-    writer.close()
+    try:
+        writer.write(f";".encode())
+        await writer.drain()
+    except ConnectionResetError:
+        pass
+    finally:
+        writer.close()
 
 
 if __name__ == "__main__":

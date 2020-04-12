@@ -3,6 +3,13 @@
 ## description
 a database for fun
 
+### design
+#### api
+the database has a simple API with 3 operations:
+- `put`
+- `get`
+- `delete`
+
 ## todo
 - WAL
 - Index
@@ -21,3 +28,8 @@ a database for fun
 - https://www.allthingsdistributed.com/files/amazon-dynamo-sosp2007.pdf
 - https://redis.io/topics/protocol
 - https://github.com/antirez/redis/blob/96a54866ab4694cf338af0441f28aa69e9643376/src/server.c
+- https://raft.github.io/raft.pdf
+- https://github.com/ongardie/dissertation/blob/master/stanford.pdf
+- https://people.math.gatech.edu/~yu/Papers/p2p.pdf
+- https://dgraph.io/blog/post/badger-txn/
+- https://ply.readthedocs.io/en/latest/ply.html#parsing-basics

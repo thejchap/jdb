@@ -17,7 +17,7 @@ class DB:
 
     def put(self, key: bytes, value: bytes) -> None:
         entry = Entry(key=key, value=value)
-        self._memtable.insert(entry)
+        return self.append(entry)
 
     def get(self, key: bytes) -> bytes:
         head = self._memtable.find(key)
@@ -27,6 +27,9 @@ class DB:
 
         return head.value
 
+    def append(self, entry: Entry):
+        self._memtable.insert(entry)
+
     def delete(self, key: bytes):
         entry = Entry(key=key, meta=Entry.TOMBSTONE)
-        return self._memtable.insert(entry)
+        return self.append(entry)

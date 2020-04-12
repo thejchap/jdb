@@ -1,33 +1,112 @@
-from pyparsing import CaselessKeyword, Word, alphanums, Literal
+from typing import Callable, Tuple, Optional
+from pyparsing import (
+    CaselessKeyword,
+    Word,
+    alphanums,
+    ParseResults,
+    OneOrMore,
+)
+from jdb.db import DB
+from jdb.entry import Entry
+from jdb.errors import NotFound
+from jdb.transaction import Transaction, Read
 
-# reserved tokens
+Result = Tuple[Optional[str], Optional[Transaction]]
+
+# operations
+BEGIN_TRANSACTION = "BEGIN TRANSACTION"
+END_TRANSACTION = "END TRANSACTION"
 PUT = "PUT"
 DELETE = "DELETE"
 GET = "GET"
-EXIT = "EXIT"
+
+# reserved tokens
 TERMINATOR = ";"
 
 # results
-OP = "op"
 KEY = "key"
 VALUE = "value"
+TXN = "txn"
+
+# response
+OK = "OK"
+SYNTAX_ERR = "SYNTAX ERR"
+
+
+def _do_statement(db: DB, tokens: ParseResults) -> Result:
+    if "txn" in tokens:
+        return tokens.txn(db)
+
+    if len(tokens) == 1 and isinstance(tokens[0], Read):
+        try:
+            return (db.get(key=tokens[0].key).decode(), None)
+        except NotFound:
+            return (None, None)
+
+    return _do_transaction(tokens)(db)
+
+
+def _do_transaction(tokens: ParseResults) -> Callable[[DB], Result]:
+    def wrapper(db: DB):
+        txn = Transaction(db=db)
+
+        for tok in tokens:
+            if isinstance(tok, Read):
+                txn.reads.append(tok)
+            else:
+                txn.entries.append(tok)
+
+        return OK, txn.commit()
+
+    return wrapper
+
+
+def _do_put(tokens: ParseResults) -> Entry:
+    return Entry(key=tokens.key.encode(), value=tokens.value.encode())
+
+
+def _do_get(tokens: ParseResults) -> Read:
+    return Read(key=tokens.key.encode())
+
+
+def _do_delete(tokens: ParseResults) -> Entry:
+    return Entry(key=tokens.key.encode(), meta=Entry.TOMBSTONE)
 
 
 class JQL:
     _put = (
-        CaselessKeyword(PUT).setResultsName(OP)
+        CaselessKeyword(PUT).suppress()
         + Word(alphanums).setResultsName(KEY)
         + Word(alphanums).setResultsName(VALUE)
+    ).addParseAction(_do_put)
+    _get = (
+        CaselessKeyword(GET).suppress() + Word(alphanums).setResultsName(KEY)
+    ).addParseAction(_do_get)
+    _delete = (
+        CaselessKeyword(DELETE).suppress() + Word(alphanums).setResultsName(KEY)
+    ).addParseAction(_do_delete)
+    _operation = _put | _delete | _get
+    _transaction = (
+        (
+            CaselessKeyword(BEGIN_TRANSACTION).suppress()
+            + OneOrMore(_operation)
+            + CaselessKeyword(END_TRANSACTION).suppress()
+        )
+        .addParseAction(_do_transaction)
+        .setResultsName(TXN)
     )
 
-    _get = CaselessKeyword(GET).setResultsName(OP) + Word(alphanums).setResultsName(KEY)
-    _xit = CaselessKeyword(EXIT).setResultsName(OP)
+    _statement = _operation | _transaction
 
-    _delete = CaselessKeyword(DELETE).setResultsName(OP) + Word(
-        alphanums
-    ).setResultsName(KEY)
+    def __init__(self, db: DB):
+        self._db = db
+        self._statement.setParseAction(self._with_db(_do_statement))
 
-    _statement = (_put | _get | _delete | _xit) + Literal(TERMINATOR).suppress()
+    def call(self, statement: str) -> Result:
+        return self._statement.parseString(statement, parseAll=True)[0]
 
-    def parse(self, txt: str):
-        return self._statement.parseString(txt, parseAll=True)
+    def _with_db(self, func: Callable) -> Callable:
+        def wrapped(tokens: ParseResults) -> Transaction:
+            return func(self._db, tokens)
+
+        return wrapped
