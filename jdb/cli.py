@@ -11,7 +11,7 @@ def _prompt(prompt: str):
         while True:
             txt = input(prompt)
             if TERMINATOR in txt:
-                statement += f"{txt.split(TERMINATOR)[0]};"
+                statement += f"{txt.split(TERMINATOR)[0]};\n"
                 break
             statement += f"{txt}\n"
         yield statement
@@ -40,7 +40,7 @@ async def _async_main():
         pass
 
     try:
-        writer.write(f";".encode())
+        writer.write(b"")
         await writer.drain()
     except ConnectionResetError:
         pass

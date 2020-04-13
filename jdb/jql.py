@@ -1,11 +1,5 @@
 from typing import Callable, Tuple, Optional
-from pyparsing import (
-    CaselessKeyword,
-    Word,
-    alphanums,
-    ParseResults,
-    OneOrMore,
-)
+from pyparsing import CaselessKeyword, Word, alphanums, ParseResults, OneOrMore, Literal
 from jdb.db import DB
 from jdb.entry import Entry
 from jdb.errors import NotFound
@@ -96,7 +90,7 @@ class JQL:
         .setResultsName(TXN)
     )
 
-    _statement = _operation | _transaction
+    _statement = (_operation | _transaction) + Literal(TERMINATOR).suppress()
 
     def __init__(self, db: DB):
         self._db = db

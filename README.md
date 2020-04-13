@@ -33,3 +33,5 @@ the database has a simple API with 3 operations:
 - https://people.math.gatech.edu/~yu/Papers/p2p.pdf
 - https://dgraph.io/blog/post/badger-txn/
 - https://ply.readthedocs.io/en/latest/ply.html#parsing-basics
+- https://en.wikipedia.org/wiki/Multiversion_concurrency_control
+- https://dl.acm.org/doi/pdf/10.1145/356842.356846
