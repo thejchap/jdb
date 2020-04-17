@@ -21,11 +21,19 @@ async def _async_main():
     parser = ArgumentParser(description="jdb client")
     parser.add_argument("-p", "--port", help="port", default=1337, type=int)
     parser.add_argument("-o", "--host", help="host", default="127.0.0.1", type=str)
+    parser.add_argument("-q", "--query", help="query", type=str)
     args = parser.parse_args()
     prompt = f"{args.host}:{args.port}> "
     reader: StreamReader
     writer: StreamWriter
     reader, writer = await open_connection(args.host, args.port)
+
+    if args.query:
+        writer.write(f"{args.query}\n".encode())
+        await writer.drain()
+        res = await reader.readline()
+        print(res.decode().rstrip())
+        return
 
     try:
         for statement in _prompt(prompt):

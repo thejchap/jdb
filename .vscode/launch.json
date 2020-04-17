@@ -10,6 +10,16 @@
             "request": "launch",
             "program": "${workspaceFolder}/tests/benchmark.py",
             "console": "integratedTerminal"
+        },
+        {
+            "name": "transaction",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/jdb/jql.py",
+            "console": "integratedTerminal",
+            "args": [
+                "BEGIN TRANSACTION\nPUT hello world\nGET hello\nEND TRANSACTION;"
+            ]
         }
     ]
 }

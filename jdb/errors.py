@@ -8,3 +8,7 @@ class TableOverflow(Exception):
 
 class NotFound(Exception):
     pass
+
+
+class Abort(Exception):
+    pass

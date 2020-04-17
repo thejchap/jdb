@@ -10,7 +10,7 @@ from jdb.id import ID, id_to_str, gen_id
 _LOGGER = get_logger()
 
 
-class Client(StreamRequestHandler):
+class Conn(StreamRequestHandler):
     client_id: ID
     jql: JQL
 
@@ -27,20 +27,20 @@ class Client(StreamRequestHandler):
         statement = ""
 
         for data in self.rfile:
-            raw = data.decode()
+            raw = data.decode().rstrip()
 
-            if not len(raw.rstrip()):
+            if not len(raw):
                 break
 
-            statement += raw
+            statement += f"{raw}\n"
             stripped = statement.rstrip()
 
             if stripped[-1:] == TERMINATOR:
-                self._call(stripped)
+                self._call(statement)
                 statement = ""
 
     def _call(self, statement: str):
-        self.logger.debug("statement", statement=statement)
+        self.logger.debug("statement", statement=f"{statement!r}")
 
         try:
             result, txn = self.jql.call(statement=statement)
@@ -56,12 +56,12 @@ class Client(StreamRequestHandler):
 class Server(TCPServer):
     nodeid: ID
     db: DB
-    clients: Dict[ID, Client]
+    clients: Dict[ID, Conn]
 
     def __init__(self, *args, **kwargs):
         self.db = DB()
         self.nodeid = gen_id()
-        self.clients: Dict[str, Client] = {}
+        self.clients: Dict[str, Conn] = {}
 
         TCPServer.__init__(self, *args, **kwargs)
 
@@ -93,7 +93,7 @@ def _main():
     parser.add_argument("-o", "--host", help="host", default="127.0.0.1", type=str)
     args = parser.parse_args()
 
-    with Server((args.host, args.port), Client) as server:
+    with Server((args.host, args.port), Conn) as server:
         server.serve_forever()
 
 

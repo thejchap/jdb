@@ -1,4 +1,5 @@
 from typing import Optional
+from .oracle import Oracle
 from .entry import Entry
 from .errors import NotFound
 from .memtable import Memtable
@@ -11,6 +12,7 @@ class DB:
         max_table_size: int = 128 << 20,
         compression: Optional[CompressionType] = CompressionType.LZ4,
     ):
+        self.oracle = Oracle()
         self._memtable = Memtable(
             max_size=max_table_size, compression=Compression(compression)
         )

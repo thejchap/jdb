@@ -1,3 +1,4 @@
+from sys import argv
 from typing import Callable, Tuple, Optional
 from pyparsing import CaselessKeyword, Word, alphanums, ParseResults, OneOrMore, Literal
 from jdb.db import DB
@@ -48,7 +49,7 @@ def _do_transaction(tokens: ParseResults) -> Callable[[DB], Result]:
             if isinstance(tok, Read):
                 txn.reads.append(tok)
             else:
-                txn.entries.append(tok)
+                txn.writes.append(tok)
 
         return OK, txn.commit()
 
@@ -104,3 +105,13 @@ class JQL:
             return func(self._db, tokens)
 
         return wrapped
+
+
+def _main():
+    jql = JQL(db=DB())
+    res = jql.call(argv[1])
+    print(res[0])
+
+
+if __name__ == "__main__":
+    _main()

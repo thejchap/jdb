@@ -1,7 +1,8 @@
 from pytest import fixture, mark, raises
 from jdb.db import DB
 from jdb.entry import Entry
-from jdb.errors import TableOverflow, NotFound
+from jdb.errors import TableOverflow, NotFound, Abort
+from jdb.transaction import Transaction, Read
 
 
 @fixture
@@ -55,3 +56,27 @@ def test_compression(db):
     db.put(key, value)
 
     assert db.get(key) == value
+
+
+def test_ssi(db):
+    t1 = Transaction(db)
+    t2 = Transaction(db)
+    t3 = Transaction(db)
+
+    t1.writes.append(Entry(key=b"a", value=b"b"))
+    t2.reads.append(Read(key=b"a"))
+    t3.reads.append(Read(key=b"c"))
+    t3.writes.append(Entry(key=b"c", value=b"d"))
+
+    t1.commit()
+
+    with raises(Abort):
+        t2.commit()
+
+    t3.commit()
+
+    assert t1.read_ts == 0
+    assert t2.read_ts == 0
+    assert t3.read_ts == 0
+    assert t1.commit_ts == 1
+    assert t3.commit_ts == 2
