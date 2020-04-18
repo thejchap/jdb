@@ -3,9 +3,11 @@ from socketserver import TCPServer, StreamRequestHandler
 from argparse import ArgumentParser
 from pyparsing import ParseException
 from structlog import get_logger
-from jdb.jql import JQL, SYNTAX_ERR, TERMINATOR
+from jdb.jql import JQL
+from jdb.const import SYNTAX_ERR, TERMINATOR
 from jdb.db import DB
-from jdb.id import ID, id_to_str, gen_id
+from jdb.util import id_to_str, gen_id
+from jdb.types import ID
 
 _LOGGER = get_logger()
 

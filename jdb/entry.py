@@ -3,14 +3,13 @@ from typing import Optional
 import uvarint
 from binascii import crc32
 from dataclasses import dataclass
-from .errors import ChecksumMismatch
-from .compression import Compression
+from jdb.errors import ChecksumMismatch
+from jdb.compression import Compression
+from jdb.const import BIT_TOMBSTONE
 
 
 @dataclass
 class Entry:
-    TOMBSTONE = 1 << 0
-
     key: bytes
     value: bytes = bytes()
     meta: int = 0
@@ -50,7 +49,7 @@ class Entry:
     def isdeleted(self) -> bool:
         """return true if tombstone bit is set"""
 
-        return self.meta & self.TOMBSTONE == 1
+        return self.meta & BIT_TOMBSTONE == 1
 
     def encode(self, compression: Optional[Compression] = None) -> bytes:
         """

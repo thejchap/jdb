@@ -1,4 +1,0 @@
-BEGIN TRANSACTION
-PUT hello world
-PUT foo bar
-END TRANSACTION;

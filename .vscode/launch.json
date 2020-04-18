@@ -5,13 +5,6 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "benchmark",
-            "type": "python",
-            "request": "launch",
-            "program": "${workspaceFolder}/tests/benchmark.py",
-            "console": "integratedTerminal"
-        },
-        {
             "name": "transaction",
             "type": "python",
             "request": "launch",

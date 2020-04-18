@@ -5,10 +5,7 @@ from .entry import Entry
 from .errors import TableOverflow
 from .avltree import AVLTree
 from .compression import Compression
-
-Key = bytes
-Offset = int
-IndexEntry = Tuple[Key, Offset]
+from .types import IndexEntry, Key, Offset
 
 
 def _comparator(a: IndexEntry, b: IndexEntry) -> int:

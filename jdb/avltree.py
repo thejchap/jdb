@@ -1,21 +1,19 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import TypeVar, Generic, Callable, Optional, Any
-
-T = TypeVar("T")
-Comparator = Callable[[Any, T, T], int]
+from typing import Generic, Optional
+from jdb import types
 
 
 @dataclass
-class Node(Generic[T]):
-    key: T
-    comparator: Comparator
-    left: Optional[Node[T]] = None
-    right: Optional[Node[T]] = None
+class Node(Generic[types.T]):
+    key: types.T
+    comparator: types.Comparator
+    left: Optional[Node[types.T]] = None
+    right: Optional[Node[types.T]] = None
     height: int = 0
     balance_factor: int = 0
 
-    def search(self, key: T) -> Optional[T]:
+    def search(self, key: types.T) -> Optional[types.T]:
         cmp = self.comparator(key, self.key)
 
         if cmp < 0:
@@ -25,7 +23,7 @@ class Node(Generic[T]):
 
         return self.key
 
-    def insert(self, node: Node[T]) -> None:
+    def insert(self, node: Node[types.T]) -> None:
         cmp = self.comparator(node.key, self.key)
 
         if cmp == 0:
@@ -53,20 +51,17 @@ class Node(Generic[T]):
             pass
 
 
-class AVLTree(Generic[T]):
-    root: Optional[Node[T]] = None
+class AVLTree(Generic[types.T]):
+    root: Optional[Node[types.T]] = None
 
-    def __init__(self, comparator: Comparator):
+    def __init__(self, comparator: types.Comparator):
         self._cmp = comparator
 
-    def __str__(self):
-        return f"AVLTree(root={self.root})"
-
-    def search(self, key: T) -> Optional[T]:
+    def search(self, key: types.T) -> Optional[types.T]:
         return self.root.search(key) if self.root else None
 
-    def insert(self, key: T) -> None:
-        node = Node[T](key=key, comparator=self._cmp)
+    def insert(self, key: types.T) -> None:
+        node = Node[types.T](key=key, comparator=self._cmp)
 
         if self.root:
             self.root.insert(node)

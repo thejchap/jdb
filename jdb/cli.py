@@ -1,7 +1,7 @@
 from asyncio import open_connection, run
 from asyncio.streams import StreamReader, StreamWriter
 from argparse import ArgumentParser
-from jdb.jql import TERMINATOR
+from jdb import const
 
 
 def _prompt(prompt: str):
@@ -10,8 +10,8 @@ def _prompt(prompt: str):
 
         while True:
             txt = input(prompt)
-            if TERMINATOR in txt:
-                statement += f"{txt.split(TERMINATOR)[0]};\n"
+            if const.TERMINATOR in txt:
+                statement += f"{txt.split(const.TERMINATOR)[0]};\n"
                 break
             statement += f"{txt}\n"
         yield statement

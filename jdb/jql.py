@@ -4,37 +4,32 @@ from pyparsing import CaselessKeyword, Word, alphanums, ParseResults, OneOrMore,
 from jdb.db import DB
 from jdb.entry import Entry
 from jdb.errors import NotFound
-from jdb.transaction import Transaction, Read
+from jdb.transaction import Transaction
+from jdb.types import Key
+from jdb.const import (
+    PUT,
+    GET,
+    DELETE,
+    VALUE,
+    OK,
+    KEY,
+    BEGIN_TRANSACTION,
+    END_TRANSACTION,
+    TXN,
+    TERMINATOR,
+    BIT_TOMBSTONE,
+)
 
 Result = Tuple[Optional[str], Optional[Transaction]]
-
-# operations
-BEGIN_TRANSACTION = "BEGIN TRANSACTION"
-END_TRANSACTION = "END TRANSACTION"
-PUT = "PUT"
-DELETE = "DELETE"
-GET = "GET"
-
-# reserved tokens
-TERMINATOR = ";"
-
-# results
-KEY = "key"
-VALUE = "value"
-TXN = "txn"
-
-# response
-OK = "OK"
-SYNTAX_ERR = "SYNTAX ERR"
 
 
 def _do_statement(db: DB, tokens: ParseResults) -> Result:
     if "txn" in tokens:
         return tokens.txn(db)
 
-    if len(tokens) == 1 and isinstance(tokens[0], Read):
+    if len(tokens) == 1 and isinstance(tokens[0], Key):
         try:
-            return (db.get(key=tokens[0].key).decode(), None)
+            return (db.get(tokens[0]).decode(), None)
         except NotFound:
             return (None, None)
 
@@ -46,10 +41,10 @@ def _do_transaction(tokens: ParseResults) -> Callable[[DB], Result]:
         txn = Transaction(db=db)
 
         for tok in tokens:
-            if isinstance(tok, Read):
-                txn.reads.append(tok)
+            if isinstance(tok, Key):
+                txn.read(tok)
             else:
-                txn.writes.append(tok)
+                txn.write(tok.key, tok.value, tok.meta)
 
         return OK, txn.commit()
 
@@ -60,12 +55,12 @@ def _do_put(tokens: ParseResults) -> Entry:
     return Entry(key=tokens.key.encode(), value=tokens.value.encode())
 
 
-def _do_get(tokens: ParseResults) -> Read:
-    return Read(key=tokens.key.encode())
+def _do_get(tokens: ParseResults) -> Key:
+    return tokens.key.encode()
 
 
 def _do_delete(tokens: ParseResults) -> Entry:
-    return Entry(key=tokens.key.encode(), meta=Entry.TOMBSTONE)
+    return Entry(key=tokens.key.encode(), meta=BIT_TOMBSTONE)
 
 
 class JQL:

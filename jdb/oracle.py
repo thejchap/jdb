@@ -1,4 +1,5 @@
-from .errors import Abort
+from jdb.errors import Abort
+from jdb.const import MAX_UINT_64
 
 
 class Oracle:
@@ -18,7 +19,7 @@ class Oracle:
         return self._next_ts - 1
 
     def commit_request(self, txn) -> int:
-        for key in txn.read_set:
+        for key in txn.reads:
             last_commit = self._commits.get(key)
 
             if last_commit and last_commit > txn.read_ts:
@@ -26,7 +27,10 @@ class Oracle:
 
         ts = next(iter(self))
 
-        for key in txn.write_set:
+        if ts == MAX_UINT_64:
+            raise OverflowError()
+
+        for key in txn.writes.keys():
             self._commits[key] = ts
 
         return ts
