@@ -31,7 +31,7 @@ class Conn(StreamRequestHandler):
         for data in self.rfile:
             raw = data.decode().rstrip()
 
-            if not len(raw):
+            if not raw:
                 break
 
             statement += f"{raw}\n"

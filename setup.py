@@ -8,6 +8,7 @@ setup(
     packages=["jdb"],
     install_requires=[
         "black",
+        "pylint",
         "flake8",
         "mypy",
         "pytest",

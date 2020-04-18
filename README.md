@@ -36,3 +36,4 @@ the database has a simple API with 3 operations:
 - https://en.wikipedia.org/wiki/Multiversion_concurrency_control
 - https://dl.acm.org/doi/pdf/10.1145/356842.356846
 - https://dl.acm.org/doi/10.1145/2168836.2168853
+- https://wiki.postgresql.org/wiki/SSI

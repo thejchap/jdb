@@ -1,21 +1,21 @@
 from __future__ import annotations
 from typing import Optional
-import uvarint
 from binascii import crc32
 from dataclasses import dataclass
-from jdb.errors import ChecksumMismatch
-from jdb.compression import Compression
-from jdb.const import BIT_TOMBSTONE
+import uvarint
+from jdb import errors as err, compression as cmp, const, types
 
 
 @dataclass
 class Entry:
+    """represents a unit of storage in the db/log"""
+
     key: bytes
     value: bytes = bytes()
     meta: int = 0
 
     @classmethod
-    def decode(cls, buf: bytes, compression: Optional[Compression] = None) -> Entry:
+    def decode(cls, buf: bytes, compression: Optional[cmp.Compression] = None) -> Entry:
         """
         1. decode header
         2. use header metadata to decode body
@@ -37,7 +37,7 @@ class Entry:
         check = crc32(value, check)
 
         if checksum != check:
-            raise ChecksumMismatch()
+            raise err.ChecksumMismatch()
 
         if compression and compression.isenabled:
             key = compression.decompress(key)
@@ -49,13 +49,12 @@ class Entry:
     def isdeleted(self) -> bool:
         """return true if tombstone bit is set"""
 
-        return self.meta & BIT_TOMBSTONE == 1
+        return self.meta & const.BIT_TOMBSTONE == 1
 
-    def encode(self, compression: Optional[Compression] = None) -> bytes:
+    def encode(self, compression: Optional[cmp.Compression] = None) -> bytes:
         """
         byte array representation of log entry.
         append CRC32 checksum of header and k/v
-
         -----------------------------------------------------------------------
         | block size | meta | key length | value length | key | value | crc32 |
         -----------------------------------------------------------------------
@@ -80,10 +79,9 @@ class Entry:
         return bytes([*block_size, *encoded])
 
     @classmethod
-    def _encode_header(cls, key: bytes, value: bytes, meta: int) -> bytes:
+    def _encode_header(cls, key: types.Key, value: types.Value, meta: int) -> bytes:
         """
         byte array representation of header fields/metadata
-
         ------------------------------------
         | meta | key length | value length |
         ------------------------------------

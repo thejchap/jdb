@@ -1,11 +1,14 @@
 from __future__ import annotations
-from collections import OrderedDict, MutableSet
+from collections import OrderedDict
+from typing import MutableSet
 from jdb import db as database, entry, util, types, errors
 
 
 class Transaction:
+    """represents a db transaction"""
+
     db: database.DB
-    writes: OrderedDict[types.Key, entry.Entry]
+    writes: OrderedDict
     reads: MutableSet[types.Key]
     txnid: types.ID
     read_ts: types.Timestamp
@@ -19,6 +22,12 @@ class Transaction:
         self.read_ts = db.oracle.read_ts()
 
     def read(self, key: types.Key) -> types.Value:
+        """
+        if this transaction has any writes for this key, fulfill from there.
+        else, load latest version from its snapshot of the db and track the
+        read key
+        """
+
         if key in self.writes:
             return self.writes[key].value
 
@@ -33,9 +42,17 @@ class Transaction:
         return version.value
 
     def write(self, key: types.Key, value: types.Value = bytes(), meta: int = 0):
+        """add a pending write"""
+
         self.writes[key] = entry.Entry(key=key, value=value, meta=meta)
 
     def commit(self) -> Transaction:
+        """
+        dont incur any overhead with oracle if no writes to process.
+        else, get a commit ts from oracle and apply to all writes then ship
+        over to db to persist
+        """
+
         if not self.writes:
             return self
 

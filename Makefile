@@ -2,7 +2,8 @@ format:
 	@black .
 
 lint:
-	@flake8 .
+	@flake8 jdb tests
+	@pylint jdb tests
 
 install:
 	@export CPPFLAGS="-I$(brew --cellar snappy)/1.1.8/include -L$(brew --cellar snappy)/1.1.8/lib" && \
