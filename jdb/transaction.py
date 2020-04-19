@@ -56,6 +56,12 @@ class Transaction:
         if not self.writes:
             return self
 
+        with self.db.oracle.write_lock:
+            return self._commit()
+
+    def _commit(self) -> Transaction:
+        """we have writes, commit transaction"""
+
         commit_ts = self.db.oracle.commit_request(self)
         self.commit_ts = commit_ts
         writes = []
