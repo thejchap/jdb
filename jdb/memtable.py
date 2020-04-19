@@ -19,7 +19,7 @@ class Memtable:
         self._offset = 0
         self._index = AVLTree[IndexEntry](comparison_key=lambda x: x[0])
 
-    def insert(self, entry: Entry) -> None:
+    def put(self, entry: Entry) -> None:
         """append an entry to the log"""
 
         encoded = entry.encode(compression=self._compression)
@@ -33,10 +33,10 @@ class Memtable:
         self._entries_count += 1
         self._offset += size
 
-    def find(self, key: Key) -> Optional[Entry]:
+    def get(self, key: Key) -> Optional[Entry]:
         """find key and pointer in index, lookup value"""
 
-        val = self._index.search((key, 0))
+        val = self._find_near(key)
 
         if not val:
             return None
@@ -64,6 +64,11 @@ class Memtable:
             entry, bytes_read = self._decode_at_offset(offset)
             yield entry
             offset = offset + bytes_read
+
+    def _find_near(self, key: Key) -> Optional[IndexEntry]:
+        """find the closest version of this key"""
+
+        return self._index.search((key, 0), gte=True)
 
     def _decode_at_offset(self, offset: Offset) -> Tuple[Entry, int]:
         """

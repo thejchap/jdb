@@ -33,16 +33,25 @@ def tree():
     return avl.AVLTree[int]()
 
 
-@mark.skip
 def test_basic(database: db.DB):
+    database.put(b"a", b"hello")
+    database.put(b"b", b"world")
+
+    val1 = database.get(b"a")
+    val2 = database.get(b"b")
+
+    assert val1 == b"hello"
+    assert val2 == b"world"
+
+
+def test_basic_2(database: db.DB):
     database.put(b"hello", b"world")
-    database.put(b"foo", b"bar")
+    database.put(b"hello1", b"world1")
+    database.put(b"hello2", b"world2")
 
-    val1 = database.get(b"hello")
-    val2 = database.get(b"foo")
+    val = database.get(b"hello2")
 
-    assert val1 == b"world"
-    assert val2 == b"bar"
+    assert val == b"world2"
 
 
 @mark.parametrize("key,value,meta", [(b"foo", b"world", 0), (b"hello", b"bar", 1)])
@@ -78,7 +87,7 @@ def test_ssi(database: db.DB):
     txn3 = txn.Transaction(database)
 
     txn1.write(b"a", b"z")
-    txn2.read(b"a")
+    assert txn2.read(b"a") == b"b"
     txn2.write(b"a", b"y")
 
     txn3.write(b"c", b"d")
@@ -108,6 +117,31 @@ def test_avl(tree: avl.AVLTree):
 
     assert tree.search(3) == 3
     assert not tree.search(7)
+
+
+def test_avl_near(tree: avl.AVLTree):
+    tree.insert(3)
+    tree.insert(4)
+    tree.insert(1)
+
+    assert tree.search(2, gte=True) == 3
+
+
+def test_avl_near_2(tree: avl.AVLTree):
+    tree.insert(2)
+    tree.insert(1)
+    tree.insert(5)
+
+    assert tree.search(4, gte=True) == 5
+
+
+def test_avl_near_3(tree: avl.AVLTree):
+    tree.insert(5)
+    tree.insert(2)
+    tree.insert(1)
+    tree.insert(3)
+
+    assert tree.search(3, gte=True) == 3
 
 
 def test_parse_put(parser: jql.JQL):
