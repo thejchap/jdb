@@ -1,4 +1,5 @@
-from typing import Dict, Tuple, Optional
+from typing import Tuple, Optional
+from collections import OrderedDict
 from socketserver import ThreadingTCPServer, StreamRequestHandler
 from argparse import ArgumentParser
 from pyparsing import ParseException
@@ -77,13 +78,13 @@ class Server(ThreadingTCPServer):
 
     nodeid: ID
     db: DB
-    clients: Dict[ID, Conn]
+    clients: OrderedDict
 
     def __init__(self, addr: Tuple[str, int], max_connections: Optional[int] = 100):
         self.db = DB()
         self.nodeid = gen_id()
         self.max_connections = max_connections
-        self.clients = {}
+        self.clients = OrderedDict()
 
         ThreadingTCPServer.__init__(self, addr, Conn)
 
