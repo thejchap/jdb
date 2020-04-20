@@ -13,7 +13,6 @@ setup(
         "mypy",
         "pytest",
         "uvarint",
-        "lz4tools",
         "python-snappy",
         "xxhash",
         "structlog",

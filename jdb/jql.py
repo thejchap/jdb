@@ -13,8 +13,8 @@ from jdb.const import (
     VALUE,
     OK,
     KEY,
-    BEGIN_TRANSACTION,
-    END_TRANSACTION,
+    BEGIN,
+    END,
     TXN,
     TERMINATOR,
     BIT_TOMBSTONE,
@@ -78,9 +78,9 @@ class JQL:
     _operation = _put | _delete | _get
     _transaction = (
         (
-            CaselessKeyword(BEGIN_TRANSACTION).suppress()
+            CaselessKeyword(BEGIN).suppress()
             + OneOrMore(_operation)
-            + CaselessKeyword(END_TRANSACTION).suppress()
+            + CaselessKeyword(END).suppress()
         )
         .addParseAction(_do_transaction)
         .setResultsName(TXN)

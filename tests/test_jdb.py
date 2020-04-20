@@ -9,6 +9,7 @@ from jdb import (
     transaction as txn,
     avltree as avl,
     util,
+    node,
 )
 
 
@@ -162,7 +163,7 @@ def test_parse_get(parser: jql.JQL, database: db.DB):
 
 
 def test_parse_transaction(parser: jql.JQL):
-    statement = "begin transaction\nput a b\nput c d\nend transaction;"
+    statement = "begin\nput a b\nput c d\nend;"
     _, txn1 = parser.call(statement)
 
     assert txn1
@@ -171,7 +172,7 @@ def test_parse_transaction(parser: jql.JQL):
 
 
 def test_parse_transaction_with_read(parser: jql.JQL):
-    statement = "begin transaction\nput a b\nget a\nend transaction;"
+    statement = "begin\nput a b\nget a\nend;"
     _, txn1 = parser.call(statement)
 
     assert txn1
@@ -185,3 +186,11 @@ def test_key_with_ts():
 
     assert key == b"hello"
     assert ts == 100
+
+
+@mark.skip
+def test_node():
+    node1 = node.Node()
+    node1.peers.add(b"a")
+    node1.peers.remove(b"a")
+    node1.peers.add(b"b")

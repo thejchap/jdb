@@ -1,59 +1,42 @@
 from typing import Optional
-from contextlib import contextmanager
 from enum import Enum
-from lz4f import (
-    compressFrame as lz4f_compress,
-    decompressFrame as lz4f_decompress,
-    createDecompContext as lz4f_create_dctx,
-    freeDecompContext as lz4f_free_dctx,
-)
-from snappy import (
-    compress as snappy_compress,
-    decompress as snappy_decompress,
-)
+from snappy import compress, decompress
 
 
 class CompressionType(Enum):
-    LZ4 = 1
-    SNAPPY = 2
+    """only snappy supported for now"""
+
+    SNAPPY = 1
 
 
 class Compression:
+    """wrapper for compression. lz4 was being weird so just snappy for now"""
+
     def __init__(self, compression_type: Optional[CompressionType]):
         self._compression_type = compression_type
 
     @property
     def isenabled(self) -> bool:
+        """did we set one"""
+
         return bool(self._compression_type)
 
     def compress(self, raw: bytes) -> bytes:
+        """only one type for now"""
+
         compressed = raw
 
-        if self._compression_type == CompressionType.LZ4:
-            compressed = lz4f_compress(raw)
-        elif self._compression_type == CompressionType.SNAPPY:
-            compressed = snappy_compress(raw)
+        if self._compression_type == CompressionType.SNAPPY:
+            compressed = compress(raw)
 
         return compressed
 
     def decompress(self, compressed: bytes) -> bytes:
+        """only one type for now"""
+
         raw = compressed
 
-        if self._compression_type == CompressionType.LZ4:
-            with self._lz4f_dctx() as dctx:
-                raw = lz4f_decompress(compressed, dctx)["decomp"]
-        elif self._compression_type == CompressionType.SNAPPY:
-            raw = snappy_decompress(compressed)
+        if self._compression_type == CompressionType.SNAPPY:
+            raw = decompress(compressed)
 
         return raw
-
-    @contextmanager
-    def _lz4f_dctx(self):
-        dctx = lz4f_create_dctx()
-
-        try:
-            yield dctx
-        except Exception as err:
-            lz4f_free_dctx(dctx)
-
-            raise err

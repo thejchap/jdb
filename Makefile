@@ -19,4 +19,7 @@ cli:
 	@python3 jdb/cli.py
 
 server:
-	@python3 jdb/server.py
+	@python3 jdb/server/server.py
+
+cluster:
+	@foreman start

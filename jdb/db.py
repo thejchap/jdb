@@ -17,7 +17,7 @@ class DB:
     def __init__(
         self,
         max_table_size: int = 128 << 20,
-        compression: Optional[cmp.CompressionType] = cmp.CompressionType.LZ4,
+        compression: Optional[cmp.CompressionType] = cmp.CompressionType.SNAPPY,
     ):
         self.oracle = orc.Oracle()
         self.memtable = mem.Memtable(
