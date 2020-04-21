@@ -1,4 +1,4 @@
-
+from datetime import datetime, timezone
 from typing import Tuple
 from uuid import uuid4 as uuid
 from xxhash import xxh64_intdigest
@@ -27,3 +27,18 @@ def decode_key_with_ts(key_with_ts: Key) -> Tuple[Key, Timestamp]:
     key = key_with_ts[:-8]
     ts = MAX_UINT_64 - int.from_bytes(key_with_ts[-8:], byteorder="big")
     return (key, ts)
+
+
+def now_ms() -> int:
+    """ms since epoch"""
+
+    return int(datetime.now(tz=timezone.utc).timestamp() * 1000)
+
+
+def bitmask(start: int, stop: int) -> int:
+    mask = 0
+
+    for i in range(start, stop):
+        mask = mask | 1 << i
+
+    return mask

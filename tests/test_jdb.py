@@ -10,6 +10,7 @@ from jdb import (
     avltree as avl,
     util,
     node,
+    hlc,
 )
 
 
@@ -188,9 +189,28 @@ def test_key_with_ts():
     assert ts == 100
 
 
-@mark.skip
 def test_node():
     node1 = node.Node()
     node1.peers.add(b"a")
     node1.peers.remove(b"a")
     node1.peers.add(b"b")
+    node1.peers.add(b"c")
+
+    peers = dict(node1.peers)
+
+    assert b"b" in peers
+    assert b"c" in peers
+    assert b"a" not in peers
+
+
+def test_hlc():
+    clock = hlc.HLC()
+    clock.incr()
+    clock.incr()
+    clock.incr()
+    ts1 = clock.incr()
+    ts1int = int(ts1)
+    ts2 = hlc.HLCTimestamp.from_int(ts1int)
+
+    assert ts2.ts == ts1.ts
+    assert ts2.count == ts1.count

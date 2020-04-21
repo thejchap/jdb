@@ -1,25 +1,26 @@
-from dataclasses import dataclass, field
+from threading import Lock
 from collections import OrderedDict
-from jdb import types
+from jdb import types, hlc
 
 
-@dataclass
 class LWWRegister:
-    replica_id: types.ID
-    _ts: int = 0
-    _add_set: OrderedDict = field(default_factory=OrderedDict)
-    _remove_set: OrderedDict = field(default_factory=OrderedDict)
+    def __init__(self, replica_id: types.ID):
+        self.replica_id = replica_id
+        self.clock = hlc.HLC()
+        self.add_set: OrderedDict = OrderedDict()
+        self.remove_set: OrderedDict = OrderedDict()
+        self.lock = Lock()
 
     def __iter__(self):
-        for el, ts in self._add_set:
-            if el in self._remove_set and self._remove_set[el] > ts:
+        for elem, ts in self.add_set.items():
+            if elem in self.remove_set and self.remove_set[elem] > ts:
                 continue
-            yield el
+            yield elem, ts
 
     def add(self, element: bytes):
-        self._add_set[element] = self._ts
-        self._ts += 1
+        with self.lock:
+            self.add_set[element] = int(self.clock.incr())
 
     def remove(self, element: bytes):
-        self._remove_set[element] = self._ts
-        self._ts += 1
+        with self.lock:
+            self.remove_set[element] = int(self.clock.incr())
