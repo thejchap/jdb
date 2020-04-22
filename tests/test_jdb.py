@@ -1,6 +1,7 @@
 # pylint:disable=redefined-outer-name
 
 from pytest import fixture, mark, raises
+from freezegun import freeze_time
 from jdb import (
     db,
     jql,
@@ -11,6 +12,7 @@ from jdb import (
     util,
     node,
     hlc,
+    const,
 )
 
 
@@ -189,22 +191,40 @@ def test_key_with_ts():
     assert ts == 100
 
 
-def test_node():
+def test_peer_merge_basic():
+    global_clock = hlc.HLC(node_id=0)
     node1 = node.Node()
+    node2 = node.Node()
+    node1.peers.clock = global_clock
+    node2.peers.clock = global_clock
     node1.peers.add(b"a")
-    node1.peers.remove(b"a")
+    node2.peers.remove(b"a")
     node1.peers.add(b"b")
-    node1.peers.add(b"c")
+    node1.peers.add(b"d")
+    node2.peers.add(b"c")
+    node2.peers.remove(b"d")
+    merged = dict(node1.peers.merge(node2.peers))
 
-    peers = dict(node1.peers)
+    assert b"b" in merged
+    assert b"c" in merged
+    assert b"a" not in merged
+    assert b"d" not in merged
 
-    assert b"b" in peers
-    assert b"c" in peers
-    assert b"a" not in peers
+
+@freeze_time("1970-01-01")
+def test_peer_merge_concurrent():
+    node1 = node.Node(node_id=1)
+    node2 = node.Node(node_id=2)
+    node1.peers.remove(b"a")
+    node2.peers.add(b"a")
+    merged = node1.peers.merge(node2.peers)
+    merge_dict = dict(merged)
+
+    assert b"a" in merge_dict
 
 
 def test_hlc():
-    clock = hlc.HLC()
+    clock = hlc.HLC(node_id=const.MAX_UINT_32)
     clock.incr()
     clock.incr()
     clock.incr()

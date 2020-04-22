@@ -1,12 +1,9 @@
-from dataclasses import dataclass, field
-from jdb import db, types, util, crdt
+from typing import Optional
+from jdb import db, util, crdt, types
 
 
-@dataclass
 class Node:
-    database: db.DB = db.DB()
-    node_id: types.ID = util.gen_id()
-    peers: crdt.LWWRegister = field(init=False)
-
-    def __post_init__(self):
+    def __init__(self, node_id: Optional[types.ID] = None):
+        self.database = db.DB()
+        self.node_id = node_id or util.gen_id()
         self.peers = crdt.LWWRegister(replica_id=self.node_id)

@@ -10,4 +10,5 @@ TXN = "txn"
 OK = "OK"
 SYNTAX_ERR = "SYNTAX ERR"
 MAX_UINT_64 = 2 ** 64 - 1
+MAX_UINT_32 = 2 ** 32 - 1
 BIT_TOMBSTONE = 1 << 0

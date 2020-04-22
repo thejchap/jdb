@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from typing import Tuple
 from uuid import uuid4 as uuid
-from xxhash import xxh64_intdigest
+from xxhash import xxh32_intdigest
 from jdb.types import ID, Key, Timestamp
 from jdb.const import MAX_UINT_64
 
@@ -15,7 +15,7 @@ def id_to_str(ident: ID) -> str:
 
 
 def gen_id() -> ID:
-    return xxh64_intdigest(uuid().bytes)
+    return xxh32_intdigest(uuid().bytes)
 
 
 def encode_key_with_ts(key: Key, ts: Timestamp) -> Key:
@@ -33,12 +33,3 @@ def now_ms() -> int:
     """ms since epoch"""
 
     return int(datetime.now(tz=timezone.utc).timestamp() * 1000)
-
-
-def bitmask(start: int, stop: int) -> int:
-    mask = 0
-
-    for i in range(start, stop):
-        mask = mask | 1 << i
-
-    return mask

@@ -17,5 +17,6 @@ setup(
         "xxhash",
         "structlog",
         "colorama",
+        "freezegun",
     ],
 )

@@ -1,12 +1,14 @@
+from __future__ import annotations
 from threading import Lock
 from collections import OrderedDict
+from itertools import chain
 from jdb import types, hlc
 
 
 class LWWRegister:
     def __init__(self, replica_id: types.ID):
         self.replica_id = replica_id
-        self.clock = hlc.HLC()
+        self.clock = hlc.HLC(node_id=replica_id)
         self.add_set: OrderedDict = OrderedDict()
         self.remove_set: OrderedDict = OrderedDict()
         self.lock = Lock()
@@ -24,3 +26,29 @@ class LWWRegister:
     def remove(self, element: bytes):
         with self.lock:
             self.remove_set[element] = int(self.clock.incr())
+
+    def merge(self, other: LWWRegister) -> LWWRegister:
+        sets = ["add_set", "remove_set"]
+        reg = LWWRegister(replica_id=self.replica_id)
+
+        with self.lock:
+            for a_set in sets:
+                my_set, other_set = (
+                    getattr(self, a_set).items(),
+                    getattr(other, a_set).items(),
+                )
+
+                for elem, ts in chain(my_set, other_set):
+                    existing = getattr(reg, a_set).get(elem)
+
+                    if not existing:
+                        getattr(reg, a_set)[elem] = ts
+                        continue
+
+                    ts_hlc = hlc.HLCTimestamp.from_int(ts)
+                    ex_hlc = hlc.HLCTimestamp.from_int(existing)
+
+                    if ts_hlc.compare(ex_hlc) > 0:
+                        getattr(reg, a_set)[elem] = ts
+
+        return reg
