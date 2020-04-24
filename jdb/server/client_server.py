@@ -21,7 +21,6 @@ class Client(StreamRequestHandler):
         addr = self.client_address
 
         self.client_id = util.gen_id()
-        self.server.clients[self.client_id] = self
         self.jql = jql.JQL(node=self.server.node)
         self.logger = self.server.logger.bind(
             client_id=util.id_to_str(self.client_id),
@@ -75,6 +74,7 @@ class Client(StreamRequestHandler):
 class ClientServer(ThreadingTCPServer):
     """server for client communication"""
 
+    daemon_threads = True
     clients: OrderedDict
 
     def __init__(

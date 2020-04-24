@@ -25,7 +25,7 @@ class Peer:
     ) -> crdt.LWWRegister:
         """wrapper around rpc call"""
 
-        self.logger.info("node.membership_state_sync.start")
+        self.logger.info("peer.membership_state_sync.start")
 
         msg = pb.MembershipState(
             add_set=cluster_state.add_set, remove_set=cluster_state.remove_set
@@ -36,7 +36,7 @@ class Peer:
         merged.add_set = OrderedDict({k: int(v) for k, v in res.add_set.items()})
         merged.remove_set = OrderedDict({k: int(v) for k, v in res.remove_set.items()})
 
-        self.logger.info("node.membership_state_sync.done")
+        self.logger.info("peer.membership_state_sync.done")
 
         return merged
 
@@ -55,7 +55,9 @@ class Node:
     def __iter__(self):
         """return meta"""
 
-        for key in ["p2p_addr", "client_addr", "node_id"]:
+        yield "node_id", util.id_to_str(self.node_id)
+
+        for key in ["p2p_addr", "client_addr"]:
             yield key, getattr(self, key)
 
         yield "cluster_state", dict(self.cluster_state)
@@ -82,3 +84,12 @@ class Node:
         merged = peer.membership_state_sync(self.cluster_state)
         self.cluster_state = merged
         self.logger.info("node.bootstrap.done")
+
+    def membership_state_sync(self, incoming: crdt.LWWRegister) -> crdt.LWWRegister:
+        """merge cluster state with one from a remote node"""
+
+        self.logger.info("node.membership_state_sync.start")
+        merged = self.cluster_state.merge(incoming)
+        self.cluster_state = merged
+        self.logger.info("node.membership_state_sync.done")
+        return merged

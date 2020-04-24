@@ -19,8 +19,8 @@ class PeerServer(pgrpc.PeerServerServicer):
         incoming.remove_set = OrderedDict(
             {k: int(v) for k, v in request.remove_set.items()}
         )
-        merged = self.node.cluster_state.merge(incoming)
-        self.node.cluster_state = merged
+
+        merged = self.node.membership_state_sync(incoming)
 
         return pb.MembershipState(
             add_set=merged.add_set,

@@ -2,7 +2,7 @@ from threading import Thread
 from typing import Optional
 from dataclasses import dataclass, field
 from argparse import ArgumentParser
-from jdb import server, node
+from jdb import server, node, util
 
 
 @dataclass
@@ -15,6 +15,7 @@ class Server:
     p2p_port: int
     max_connections: int
     join: Optional[str] = None
+    node_id: Optional[str] = None
     _client_server: server.ClientServer = field(init=False)
     _peer_server: server.PeerServer = field(init=False)
     _node: node.Node = field(init=False)
@@ -24,8 +25,11 @@ class Server:
 
         p2p_addr = f"{self.p2p_host}:{self.p2p_port}"
         client_addr = f"{self.host}:{self.port}"
+        node_id = util.id_from_str(self.node_id) if self.node_id else None
 
-        self._node = node.Node(p2p_addr=p2p_addr, client_addr=client_addr)
+        self._node = node.Node(
+            p2p_addr=p2p_addr, client_addr=client_addr, node_id=node_id,
+        )
 
         if self.join:
             self._node.bootstrap(self.join)
@@ -85,6 +89,7 @@ def _main():
         default="127.0.0.1",
         type=str,
     )
+    parser.add_argument("-i", "--node-id", help="node id", type=str)
     parser.add_argument("-j", "--join", help="node address to join", type=str)
     parser.add_argument(
         "-r", "--p2p-port", help="port for p2p communication", default=1338, type=int,
@@ -108,6 +113,7 @@ def _main():
         max_connections=args.max_connections,
         p2p_host=args.p2p_host,
         p2p_port=args.p2p_port,
+        node_id=args.node_id,
     )
 
     srv.start()
