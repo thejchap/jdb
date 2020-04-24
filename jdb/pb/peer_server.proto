@@ -2,6 +2,7 @@ syntax = "proto3";
 
 service PeerServer {
     rpc MembershipStateSync (MembershipState) returns (MembershipState) {}
+    rpc MembershipPing (Empty) returns (Empty) {}
 }
 
 message MembershipState {
@@ -9,3 +10,5 @@ message MembershipState {
     map<string, float> add_set = 2;
     map<string, float> remove_set = 3;
 }
+
+message Empty {}

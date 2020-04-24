@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x11peer_server.proto\"\xea\x01\n\x0fMembershipState\x12\x12\n\nreplica_id\x18\x01 \x01(\r\x12-\n\x07\x61\x64\x64_set\x18\x02 \x03(\x0b\x32\x1c.MembershipState.AddSetEntry\x12\x33\n\nremove_set\x18\x03 \x03(\x0b\x32\x1f.MembershipState.RemoveSetEntry\x1a-\n\x0b\x41\x64\x64SetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\x1a\x30\n\x0eRemoveSetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\x32I\n\nPeerServer\x12;\n\x13MembershipStateSync\x12\x10.MembershipState\x1a\x10.MembershipState\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x11peer_server.proto\"\xea\x01\n\x0fMembershipState\x12\x12\n\nreplica_id\x18\x01 \x01(\r\x12-\n\x07\x61\x64\x64_set\x18\x02 \x03(\x0b\x32\x1c.MembershipState.AddSetEntry\x12\x33\n\nremove_set\x18\x03 \x03(\x0b\x32\x1f.MembershipState.RemoveSetEntry\x1a-\n\x0b\x41\x64\x64SetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\x1a\x30\n\x0eRemoveSetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\"\x07\n\x05\x45mpty2m\n\nPeerServer\x12;\n\x13MembershipStateSync\x12\x10.MembershipState\x1a\x10.MembershipState\"\x00\x12\"\n\x0eMembershipPing\x12\x06.Empty\x1a\x06.Empty\"\x00\x62\x06proto3'
 )
 
 
@@ -142,11 +142,36 @@ _MEMBERSHIPSTATE = _descriptor.Descriptor(
   serialized_end=256,
 )
 
+
+_EMPTY = _descriptor.Descriptor(
+  name='Empty',
+  full_name='Empty',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=258,
+  serialized_end=265,
+)
+
 _MEMBERSHIPSTATE_ADDSETENTRY.containing_type = _MEMBERSHIPSTATE
 _MEMBERSHIPSTATE_REMOVESETENTRY.containing_type = _MEMBERSHIPSTATE
 _MEMBERSHIPSTATE.fields_by_name['add_set'].message_type = _MEMBERSHIPSTATE_ADDSETENTRY
 _MEMBERSHIPSTATE.fields_by_name['remove_set'].message_type = _MEMBERSHIPSTATE_REMOVESETENTRY
 DESCRIPTOR.message_types_by_name['MembershipState'] = _MEMBERSHIPSTATE
+DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 MembershipState = _reflection.GeneratedProtocolMessageType('MembershipState', (_message.Message,), {
@@ -172,6 +197,13 @@ _sym_db.RegisterMessage(MembershipState)
 _sym_db.RegisterMessage(MembershipState.AddSetEntry)
 _sym_db.RegisterMessage(MembershipState.RemoveSetEntry)
 
+Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), {
+  'DESCRIPTOR' : _EMPTY,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:Empty)
+  })
+_sym_db.RegisterMessage(Empty)
+
 
 _MEMBERSHIPSTATE_ADDSETENTRY._options = None
 _MEMBERSHIPSTATE_REMOVESETENTRY._options = None
@@ -182,8 +214,8 @@ _PEERSERVER = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=258,
-  serialized_end=331,
+  serialized_start=267,
+  serialized_end=376,
   methods=[
   _descriptor.MethodDescriptor(
     name='MembershipStateSync',
@@ -192,6 +224,15 @@ _PEERSERVER = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_MEMBERSHIPSTATE,
     output_type=_MEMBERSHIPSTATE,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='MembershipPing',
+    full_name='PeerServer.MembershipPing',
+    index=1,
+    containing_service=None,
+    input_type=_EMPTY,
+    output_type=_EMPTY,
     serialized_options=None,
   ),
 ])

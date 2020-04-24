@@ -1,4 +1,4 @@
-from typing import Optional, Any
+from typing import Optional, Any, Dict
 from dataclasses import dataclass, field
 from collections import OrderedDict
 from structlog import get_logger
@@ -19,6 +19,13 @@ class Peer:
         self.node_id = node_id
         self.logger = logger.bind(peer_id=util.id_to_str(node_id), peer_addr=addr)
         self._transport = pgrpc.PeerServerStub(self.channel)
+
+    def membership_ping(self) -> bool:
+        """ping"""
+
+        msg = pb.Empty()
+        self._transport.MembershipPing(msg)
+        return True
 
     def membership_state_sync(
         self, cluster_state: crdt.LWWRegister
@@ -51,6 +58,7 @@ class Node:
     store: db.DB = field(init=False)
     node_id: Optional[types.ID] = None
     cluster_state: crdt.LWWRegister = field(init=False)
+    peers: Dict[int, Peer] = field(default_factory=dict)
 
     def __iter__(self):
         """return meta"""
@@ -78,11 +86,21 @@ class Node:
     def bootstrap(self, join: str):
         """contact peer, merge cluster states"""
 
-        node_id, addr = join.split("=")
         self.logger.info("node.bootstrap.start")
-        peer = Peer(addr=addr, node_id=util.id_from_str(node_id), logger=self.logger)
+        peer_id_str, addr = join.split("=")
+        peer_id = util.id_from_str(peer_id_str)
+        peer = Peer(addr=addr, node_id=peer_id, logger=self.logger)
+        self.peers[peer_id] = peer
         merged = peer.membership_state_sync(self.cluster_state)
         self.cluster_state = merged
+        for key in dict(merged).keys():
+            peer_id_str, addr = key.split("=")
+            peer_id = util.id_from_str(peer_id_str)
+
+            if self.peers.get(peer_id):
+                continue
+
+            self.peers[peer_id] = Peer(addr=addr, node_id=peer_id, logger=self.logger)
         self.logger.info("node.bootstrap.done")
 
     def membership_state_sync(self, incoming: crdt.LWWRegister) -> crdt.LWWRegister:
@@ -91,5 +109,15 @@ class Node:
         self.logger.info("node.membership_state_sync.start")
         merged = self.cluster_state.merge(incoming)
         self.cluster_state = merged
+
+        for key in dict(merged).keys():
+            peer_id_str, addr = key.split("=")
+            peer_id = util.id_from_str(peer_id_str)
+
+            if self.peers.get(peer_id):
+                continue
+
+            self.peers[peer_id] = Peer(addr=addr, node_id=peer_id, logger=self.logger)
+
         self.logger.info("node.membership_state_sync.done")
         return merged

@@ -13,6 +13,9 @@ _LOGGER = get_logger()
 class PeerServer(pgrpc.PeerServerServicer):
     """server for p2p communication"""
 
+    def MembershipPing(self, request, context):
+        return pb.Empty()
+
     def MembershipStateSync(self, request, context):
         incoming = crdt.LWWRegister(replica_id=request.replica_id)
         incoming.add_set = OrderedDict({k: int(v) for k, v in request.add_set.items()})
