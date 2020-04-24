@@ -23,3 +23,6 @@ server:
 
 cluster:
 	@foreman start
+
+codegen:
+	@python -m grpc_tools.protoc -Ijdb/pb --python_out=jdb/pb --grpc_python_out=jdb/pb peer_server.proto

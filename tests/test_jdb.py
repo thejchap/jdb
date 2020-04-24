@@ -195,15 +195,15 @@ def test_peer_merge_basic():
     global_clock = hlc.HLC(node_id=0)
     node1 = node.Node()
     node2 = node.Node()
-    node1.peers.clock = global_clock
-    node2.peers.clock = global_clock
-    node1.peers.add(b"a")
-    node2.peers.remove(b"a")
-    node1.peers.add(b"b")
-    node1.peers.add(b"d")
-    node2.peers.add(b"c")
-    node2.peers.remove(b"d")
-    merged = dict(node1.peers.merge(node2.peers))
+    node1.cluster_state.clock = global_clock
+    node2.cluster_state.clock = global_clock
+    node1.cluster_state.add(b"a")
+    node2.cluster_state.remove(b"a")
+    node1.cluster_state.add(b"b")
+    node1.cluster_state.add(b"d")
+    node2.cluster_state.add(b"c")
+    node2.cluster_state.remove(b"d")
+    merged = dict(node1.cluster_state.merge(node2.cluster_state))
 
     assert b"b" in merged
     assert b"c" in merged
@@ -215,9 +215,9 @@ def test_peer_merge_basic():
 def test_peer_merge_concurrent():
     node1 = node.Node(node_id=1)
     node2 = node.Node(node_id=2)
-    node1.peers.remove(b"a")
-    node2.peers.add(b"a")
-    merged = node1.peers.merge(node2.peers)
+    node1.cluster_state.remove(b"a")
+    node2.cluster_state.add(b"a")
+    merged = node1.cluster_state.merge(node2.cluster_state)
     merge_dict = dict(merged)
 
     assert b"a" in merge_dict

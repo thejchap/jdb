@@ -51,7 +51,14 @@ the database has a simple API with 3 operations:
 - https://jaredforsyth.com/posts/hybrid-logical-clocks/
 - http://muratbuffalo.blogspot.com/2014/07/hybrid-logical-clocks.html
 - https://medium.com/@Alibaba_Cloud/in-depth-analysis-on-hlc-based-distributed-transaction-processing-e75dad5f2af8
-### other
+### crdt
 - https://github.com/soundcloud/roshi#crdt
+### general
 - http://book.mixu.net/distsys/eventual.html
 - https://hal.inria.fr/file/index/docid/555588/filename/techreport.pdf
+### cluster membership
+- https://en.wikipedia.org/wiki/Gossip_protocol
+- https://asafdav2.github.io/2017/swim-protocol/
+- https://research.cs.cornell.edu/projects/Quicksilver/public_pdfs/SWIM.pdf
+- https://blog.kevingomez.fr/2019/01/29/clusters-and-membership-discovering-the-swim-protocol/
+- https://www.serf.io/docs/internals/gossip.html

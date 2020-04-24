@@ -18,5 +18,8 @@ setup(
         "structlog",
         "colorama",
         "freezegun",
+        "grpcio",
+        "grpcio-tools",
+        "tenacity",
     ],
 )

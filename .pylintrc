@@ -9,7 +9,7 @@
 
 # Add files or directories to the blacklist. They should be base names, not
 # paths.
-ignore=CVS
+ignore=CVS,peer_server_pb2.py,peer_server_pb2_grpc.py
 
 # Pickle collected data for later comparisons.
 persistent=yes

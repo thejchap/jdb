@@ -1,15 +1,16 @@
 from typing import Any, Tuple, Optional
 from collections import OrderedDict
 from socketserver import StreamRequestHandler, ThreadingTCPServer
+from structlog import get_logger
 from pyparsing import ParseException
-from jdb import types, jql, util, const, db
+from jdb import jql, util, const, node as nde
+
+_LOGGER = get_logger()
 
 
 class Client(StreamRequestHandler):
     """client connection"""
 
-    client_id: types.ID
-    jql: jql.JQL
     logger: Any
 
     def setup(self):
@@ -18,9 +19,10 @@ class Client(StreamRequestHandler):
         super().setup()
 
         addr = self.client_address
+
         self.client_id = util.gen_id()
         self.server.clients[self.client_id] = self
-        self.jql = jql.JQL(db=self.server.database)
+        self.jql = jql.JQL(node=self.server.node)
         self.logger = self.server.logger.bind(
             client_id=util.id_to_str(self.client_id),
             client_address=f"{addr[0]}:{addr[1]}",
@@ -74,40 +76,42 @@ class ClientServer(ThreadingTCPServer):
     """server for client communication"""
 
     clients: OrderedDict
-    logger: Any
-    database: db.DB
 
     def __init__(
         self,
         addr: Tuple[str, int],
-        database: db.DB,
-        logger: Any,
+        node: nde.Node,
         max_connections: Optional[int] = 100,
     ):
         self.max_connections = max_connections
         self.clients = OrderedDict()
-        self.database = database
-        self.logger = logger
+        self.node = node
+        self.logger = _LOGGER.bind(addr=f"{addr[0]}:{addr[1]}")
 
         super().__init__(addr, Client)
 
     def client_connected(self, client: Client):
+        """add client"""
+
         self.clients[client.client_id] = client
         addr = client.client_address
-        self._logger.msg("client.connected", client_address=f"{addr[0]}:{addr[1]}")
+        self.logger.msg("client.connected", client_address=f"{addr[0]}:{addr[1]}")
 
     def client_disconnected(self, client: Client):
+        """remove client"""
+
         del self.clients[client.client_id]
         addr = client.client_address
-        self._logger.msg("client.disconnected", client_address=f"{addr[0]}:{addr[1]}")
+        self.logger.msg("client.disconnected", client_address=f"{addr[0]}:{addr[1]}")
 
     def server_activate(self):
+        """override"""
+
         super().server_activate()
+        self.logger.msg("client_server.listening")
 
-        self._logger.msg("client_server.listening")
+    def shutdown(self):
+        "shut it down"
 
-    @property
-    def _logger(self):
-        """bound logger"""
-
-        return self.logger.bind(port=self.server_address[1])
+        super().shutdown()
+        self.logger.msg("client_server.shutdown")

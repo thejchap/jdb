@@ -1,12 +1,8 @@
 from threading import Thread
-from functools import cached_property
+from typing import Optional
 from dataclasses import dataclass, field
 from argparse import ArgumentParser
-from structlog import get_logger
-from jdb.util import id_to_str
 from jdb import server, node
-
-_LOGGER = get_logger()
 
 
 @dataclass
@@ -14,29 +10,39 @@ class Server:
     """top-level server. starts client and peer servers in threads"""
 
     host: str
-    peer_server_host: str
+    p2p_host: str
     port: int
-    peer_server_port: int
+    p2p_port: int
     max_connections: int
+    join: Optional[str] = None
     _client_server: server.ClientServer = field(init=False)
     _peer_server: server.PeerServer = field(init=False)
-    _node: node.Node = node.Node()
+    _node: node.Node = field(init=False)
 
     def __post_init__(self):
+        """override"""
+
+        p2p_addr = f"{self.p2p_host}:{self.p2p_port}"
+        client_addr = f"{self.host}:{self.port}"
+
+        self._node = node.Node(p2p_addr=p2p_addr, client_addr=client_addr)
+
+        if self.join:
+            self._node.bootstrap(self.join)
+
         self._client_server = server.ClientServer(
             addr=(self.host, self.port),
-            database=self._node.database,
+            node=self._node,
             max_connections=self.max_connections,
-            logger=self.logger,
         )
 
         self._peer_server = server.PeerServer(
-            addr=(self.peer_server_host, self.peer_server_port),
-            database=self._node.database,
-            logger=self.logger,
+            addr=(self.p2p_host, self.p2p_port), node=self._node
         )
 
     def start(self):
+        """fire up server for client comms and p2p comms"""
+
         threads = [
             Thread(target=self._start_client_server, daemon=True),
             Thread(target=self._start_peer_server, daemon=True),
@@ -45,22 +51,23 @@ class Server:
         for thread in threads:
             thread.start()
 
-        for thread in threads:
-            thread.join()
+        try:
+            for thread in threads:
+                thread.join()
+        except KeyboardInterrupt:
+            self._client_server.shutdown()
+            self._peer_server.shutdown()
 
     def _start_peer_server(self):
-        with self._peer_server as pserver:
-            pserver.serve_forever()
+        """start up peer grpc server"""
+
+        self._peer_server.serve_forever()
 
     def _start_client_server(self):
+        """start up server for client requests"""
+
         with self._client_server as cserver:
             cserver.serve_forever()
-
-    @cached_property
-    def logger(self):
-        """bound logger"""
-
-        return _LOGGER.bind(node_id=id_to_str(self._node.node_id))
 
 
 def _main():
@@ -68,11 +75,26 @@ def _main():
 
     parser = ArgumentParser(description="jdb server")
 
-    parser.add_argument("-p", "--port", help="port", default=1337, type=int)
-    parser.add_argument("-o", "--host", help="host", default="127.0.0.1", type=str)
-    parser.add_argument("-r", "--peer-server-port", help="port", default=1338, type=int)
     parser.add_argument(
-        "-s", "--peer-server-host", help="host", default="127.0.0.1", type=str
+        "-p", "--port", help="port for client connections", default=1337, type=int
+    )
+    parser.add_argument(
+        "-o",
+        "--host",
+        help="host for client connections",
+        default="127.0.0.1",
+        type=str,
+    )
+    parser.add_argument("-j", "--join", help="node address to join", type=str)
+    parser.add_argument(
+        "-r", "--p2p-port", help="port for p2p communication", default=1338, type=int,
+    )
+    parser.add_argument(
+        "-s",
+        "--p2p-host",
+        help="host for p2p communication",
+        default="127.0.0.1",
+        type=str,
     )
     parser.add_argument(
         "-c", "--max-connections", help="max connections", default=100, type=int
@@ -82,9 +104,10 @@ def _main():
     srv = Server(
         host=args.host,
         port=args.port,
+        join=args.join,
         max_connections=args.max_connections,
-        peer_server_host=args.peer_server_host,
-        peer_server_port=args.peer_server_port,
+        p2p_host=args.p2p_host,
+        p2p_port=args.p2p_port,
     )
 
     srv.start()
