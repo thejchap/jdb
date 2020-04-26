@@ -36,20 +36,23 @@ class Peer:
         """ping"""
 
         msg = pb.Empty()
-        self.transport.MembershipPing(msg)
-        return True
-
-    def membership_ping_req(self, _other: Peer) -> bool:
-        """ping"""
-
-        msg = pb.Empty()
 
         try:
-            self.transport.MembershipPingReq(msg)
+            ack = self.transport.MembershipPing(msg)
+            return ack.ack
         except Exception:
             return False
 
-        return True
+    def membership_ping_req(self, other: Peer) -> bool:
+        """ping"""
+
+        msg = pb.MembershipPingRequest(peer_id=other.node_id, peer_addr=other.addr)
+
+        try:
+            res = self.transport.MembershipPingReq(msg)
+            return res.ack
+        except Exception:
+            return False
 
     def membership_state_sync(
         self, state: crdt.LWWRegister, from_addr: str
@@ -77,14 +80,14 @@ class Membership:
         self,
         node_id: types.ID,
         node_addr: str,
-        failure_detection_interval: float = 1,
+        failure_detection_interval: float = 0.5,
         failure_detection_subgroup_size: int = 3,
-        gossip_interval: float = 0.2,
+        gossip_subgroup_size: int = 3,
         sync_interval: float = 2,
     ):
         self.failure_detection_subgroup_size = failure_detection_subgroup_size
+        self.gossip_subgroup_size = gossip_subgroup_size
         self.failure_detection_interval = failure_detection_interval
-        self.gossip_interval = gossip_interval
         self.suspects: Set[str] = set()
         self.suspect_queue: Queue = Queue()
         self.node_id = node_id
@@ -140,6 +143,19 @@ class Membership:
             self._sync_with_random_peer()
             sleep(uniform(self.sync_interval - _JITTER, self.sync_interval + _JITTER))
 
+    def _probe_random_peer(self):
+        """pick a rando from the group and probe it"""
+
+        target = self._random_peer()
+
+        if not target:
+            return
+
+        self.logger.info("membership.probe", peer=target.node_key)
+
+        with self._failure_detection(target):
+            target.membership_ping()
+
     def _sync_with_random_peer(self):
         """pick a rando from the group and sync with it"""
 
@@ -148,10 +164,23 @@ class Membership:
         if not target:
             return
 
+        self.logger.info("membership.sync", peer=target.node_key)
+
         with self._failure_detection(target):
             self._sync_with(target)
 
-        self.logger.info("membership.sync", peer=target.node_key)
+    def _failure_detection_loop(self):
+        """SWIM fd sort of"""
+
+        while True:
+            self._probe_random_peer()
+
+            sleep(
+                uniform(
+                    self.failure_detection_interval - _JITTER,
+                    self.failure_detection_interval + _JITTER,
+                )
+            )
 
     def _investigation_loop(self):
         """process suspects off suspect queue"""
@@ -166,7 +195,7 @@ class Membership:
             self.suspect_queue.task_done()
 
     def _investigate(self, suspect: Peer):
-        """indirectly probe suspect"""
+        """indirectly probe suspect. todo: make async"""
 
         self.logger.info("membership.investigating", peer=suspect.node_key)
 
@@ -182,33 +211,59 @@ class Membership:
             ack = peer.membership_ping_req(suspect)
 
             if ack:
-                self._failure_vetoed(suspect, by=peer)
+                self._failure_vetoed(suspect, by_peer=peer)
                 return
 
-        self._failure_confirmed(suspect, by=investigators)
+        self._failure_confirmed(suspect, by_peers=investigators)
 
-    def _failure_vetoed(self, suspect: Peer, by: Peer):
+    def _failure_vetoed(self, suspect: Peer, by_peer: Peer):
         """another node was able to contact the suspect"""
 
         self.logger.info(
-            "membership.failure_vetoed", peer=suspect.node_key, by=by.node_key
+            "membership.failure_vetoed", peer=suspect.node_key, by=by_peer.node_key
         )
         self.suspects.remove(suspect.node_key)
 
-    def _failure_confirmed(self, suspect: Peer, by: List[Peer]):
+    def _failure_confirmed(self, suspect: Peer, by_peers: List[Peer]):
         """its actually faulty, update and disseminate"""
 
         self.logger.info(
             "membership.failure_confirmed",
             peer=suspect.node_key,
-            by=list(map(lambda p: p.node_key, by)),
+            by=list(map(lambda p: p.node_key, by_peers)),
         )
 
         self._remove_peer(suspect)
         self.suspects.remove(suspect.node_key)
+        self._disseminate()
+
+    def _disseminate(self):
+        keys = self._gossip_subgroup()
+        peers: List[Peer] = []
+
+        for key in keys:
+            peer_id, addr = key.split("=")
+            peer = self._get_peer(util.id_from_str(peer_id), addr=addr)
+            peers.append(peer)
+
+        for peer in peers:
+            peer.membership_state_sync(self.cluster_state, from_addr=self.node_addr)
+
+        self.logger.info(
+            "membership.disseminated", to=list(map(lambda p: p.node_key, peers)),
+        )
+
+    def _gossip_subgroup(self) -> List[str]:
+        """grab k non-faulty peers for gossip"""
+
+        peers = self._eligible_peers()
+
+        return choices(
+            self._eligible_peers(), k=min(self.gossip_subgroup_size, len(peers)),
+        )
 
     def _failure_detection_subgroup(self) -> List[str]:
-        """grab k non-faulty peers"""
+        """grab k non-faulty peers for failure verification"""
 
         peers = self._eligible_peers()
 
@@ -262,6 +317,12 @@ class Membership:
             if k != my_key and (v + i) < now and k.decode() not in self.suspects
         ]
 
+    def ping(self, peer_id: str, peer_addr: str) -> bool:
+        """ping a given peer"""
+
+        peer = self._get_peer(util.id_from_str(peer_id), addr=peer_addr)
+        return peer.membership_ping()
+
     def state_sync(
         self, incoming: crdt.LWWRegister, peer_addr: str
     ) -> crdt.LWWRegister:
@@ -274,6 +335,11 @@ class Membership:
         """fire up all components"""
 
         threads = [
+            Thread(
+                target=self._failure_detection_loop,
+                daemon=True,
+                name="MembershipFailureDetectionThread",
+            ),
             Thread(target=self._sync_loop, daemon=True, name="MembershipSyncThread"),
             Thread(
                 target=self._investigation_loop,

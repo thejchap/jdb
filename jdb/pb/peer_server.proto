@@ -2,8 +2,8 @@ syntax = "proto3";
 
 service PeerServer {
     rpc MembershipStateSync (MembershipState) returns (MembershipState) {}
-    rpc MembershipPing (Empty) returns (Empty) {}
-    rpc MembershipPingReq (Empty) returns (Empty) {}
+    rpc MembershipPing (Empty) returns (Ack) {}
+    rpc MembershipPingReq (MembershipPingRequest) returns (Ack) {}
 }
 
 message MembershipState {
@@ -13,4 +13,13 @@ message MembershipState {
     map<string, uint64> remove_set = 4;
 }
 
+message MembershipPingRequest {
+    uint32 peer_id = 1;
+    string peer_addr = 2;
+}
+
 message Empty {}
+
+message Ack {
+    bool ack = 1;
+}

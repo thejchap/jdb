@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x11peer_server.proto\"\xfd\x01\n\x0fMembershipState\x12\x12\n\nreplica_id\x18\x01 \x01(\r\x12\x11\n\tpeer_addr\x18\x02 \x01(\t\x12-\n\x07\x61\x64\x64_set\x18\x03 \x03(\x0b\x32\x1c.MembershipState.AddSetEntry\x12\x33\n\nremove_set\x18\x04 \x03(\x0b\x32\x1f.MembershipState.RemoveSetEntry\x1a-\n\x0b\x41\x64\x64SetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\x1a\x30\n\x0eRemoveSetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\"\x07\n\x05\x45mpty2\x94\x01\n\nPeerServer\x12;\n\x13MembershipStateSync\x12\x10.MembershipState\x1a\x10.MembershipState\"\x00\x12\"\n\x0eMembershipPing\x12\x06.Empty\x1a\x06.Empty\"\x00\x12%\n\x11MembershipPingReq\x12\x06.Empty\x1a\x06.Empty\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x11peer_server.proto\"\xfd\x01\n\x0fMembershipState\x12\x12\n\nreplica_id\x18\x01 \x01(\r\x12\x11\n\tpeer_addr\x18\x02 \x01(\t\x12-\n\x07\x61\x64\x64_set\x18\x03 \x03(\x0b\x32\x1c.MembershipState.AddSetEntry\x12\x33\n\nremove_set\x18\x04 \x03(\x0b\x32\x1f.MembershipState.RemoveSetEntry\x1a-\n\x0b\x41\x64\x64SetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\x1a\x30\n\x0eRemoveSetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\";\n\x15MembershipPingRequest\x12\x0f\n\x07peer_id\x18\x01 \x01(\r\x12\x11\n\tpeer_addr\x18\x02 \x01(\t\"\x07\n\x05\x45mpty\"\x12\n\x03\x41\x63k\x12\x0b\n\x03\x61\x63k\x18\x01 \x01(\x08\x32\xa0\x01\n\nPeerServer\x12;\n\x13MembershipStateSync\x12\x10.MembershipState\x1a\x10.MembershipState\"\x00\x12 \n\x0eMembershipPing\x12\x06.Empty\x1a\x04.Ack\"\x00\x12\x33\n\x11MembershipPingReq\x12\x16.MembershipPingRequest\x1a\x04.Ack\"\x00\x62\x06proto3'
 )
 
 
@@ -150,6 +150,44 @@ _MEMBERSHIPSTATE = _descriptor.Descriptor(
 )
 
 
+_MEMBERSHIPPINGREQUEST = _descriptor.Descriptor(
+  name='MembershipPingRequest',
+  full_name='MembershipPingRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='peer_id', full_name='MembershipPingRequest.peer_id', index=0,
+      number=1, type=13, cpp_type=3, label=1,
+      has_default_value=False, default_value=0,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='peer_addr', full_name='MembershipPingRequest.peer_addr', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=277,
+  serialized_end=336,
+)
+
+
 _EMPTY = _descriptor.Descriptor(
   name='Empty',
   full_name='Empty',
@@ -169,8 +207,39 @@ _EMPTY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=277,
-  serialized_end=284,
+  serialized_start=338,
+  serialized_end=345,
+)
+
+
+_ACK = _descriptor.Descriptor(
+  name='Ack',
+  full_name='Ack',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='ack', full_name='Ack.ack', index=0,
+      number=1, type=8, cpp_type=7, label=1,
+      has_default_value=False, default_value=False,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=347,
+  serialized_end=365,
 )
 
 _MEMBERSHIPSTATE_ADDSETENTRY.containing_type = _MEMBERSHIPSTATE
@@ -178,7 +247,9 @@ _MEMBERSHIPSTATE_REMOVESETENTRY.containing_type = _MEMBERSHIPSTATE
 _MEMBERSHIPSTATE.fields_by_name['add_set'].message_type = _MEMBERSHIPSTATE_ADDSETENTRY
 _MEMBERSHIPSTATE.fields_by_name['remove_set'].message_type = _MEMBERSHIPSTATE_REMOVESETENTRY
 DESCRIPTOR.message_types_by_name['MembershipState'] = _MEMBERSHIPSTATE
+DESCRIPTOR.message_types_by_name['MembershipPingRequest'] = _MEMBERSHIPPINGREQUEST
 DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
+DESCRIPTOR.message_types_by_name['Ack'] = _ACK
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
 
 MembershipState = _reflection.GeneratedProtocolMessageType('MembershipState', (_message.Message,), {
@@ -204,12 +275,26 @@ _sym_db.RegisterMessage(MembershipState)
 _sym_db.RegisterMessage(MembershipState.AddSetEntry)
 _sym_db.RegisterMessage(MembershipState.RemoveSetEntry)
 
+MembershipPingRequest = _reflection.GeneratedProtocolMessageType('MembershipPingRequest', (_message.Message,), {
+  'DESCRIPTOR' : _MEMBERSHIPPINGREQUEST,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:MembershipPingRequest)
+  })
+_sym_db.RegisterMessage(MembershipPingRequest)
+
 Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), {
   'DESCRIPTOR' : _EMPTY,
   '__module__' : 'peer_server_pb2'
   # @@protoc_insertion_point(class_scope:Empty)
   })
 _sym_db.RegisterMessage(Empty)
+
+Ack = _reflection.GeneratedProtocolMessageType('Ack', (_message.Message,), {
+  'DESCRIPTOR' : _ACK,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:Ack)
+  })
+_sym_db.RegisterMessage(Ack)
 
 
 _MEMBERSHIPSTATE_ADDSETENTRY._options = None
@@ -221,8 +306,8 @@ _PEERSERVER = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=287,
-  serialized_end=435,
+  serialized_start=368,
+  serialized_end=528,
   methods=[
   _descriptor.MethodDescriptor(
     name='MembershipStateSync',
@@ -239,7 +324,7 @@ _PEERSERVER = _descriptor.ServiceDescriptor(
     index=1,
     containing_service=None,
     input_type=_EMPTY,
-    output_type=_EMPTY,
+    output_type=_ACK,
     serialized_options=None,
   ),
   _descriptor.MethodDescriptor(
@@ -247,8 +332,8 @@ _PEERSERVER = _descriptor.ServiceDescriptor(
     full_name='PeerServer.MembershipPingReq',
     index=2,
     containing_service=None,
-    input_type=_EMPTY,
-    output_type=_EMPTY,
+    input_type=_MEMBERSHIPPINGREQUEST,
+    output_type=_ACK,
     serialized_options=None,
   ),
 ])

@@ -13,7 +13,15 @@ class PeerServer(pgrpc.PeerServerServicer):
     """server for p2p communication"""
 
     def MembershipPing(self, request, context):
-        return pb.Empty()
+        return pb.Ack(ack=True)
+
+    def MembershipPingReq(self, request, context):
+        try:
+            self.node.membership.ping(request.peer_id, request.peer_addr)
+        except Exception:
+            return pb.Ack(ack=False)
+
+        return pb.Ack(ack=True)
 
     def MembershipStateSync(self, request, context):
         incoming = crdt.LWWRegister(replica_id=request.replica_id)

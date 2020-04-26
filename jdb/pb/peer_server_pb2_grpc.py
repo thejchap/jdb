@@ -21,12 +21,12 @@ class PeerServerStub(object):
         self.MembershipPing = channel.unary_unary(
                 '/PeerServer/MembershipPing',
                 request_serializer=peer__server__pb2.Empty.SerializeToString,
-                response_deserializer=peer__server__pb2.Empty.FromString,
+                response_deserializer=peer__server__pb2.Ack.FromString,
                 )
         self.MembershipPingReq = channel.unary_unary(
                 '/PeerServer/MembershipPingReq',
-                request_serializer=peer__server__pb2.Empty.SerializeToString,
-                response_deserializer=peer__server__pb2.Empty.FromString,
+                request_serializer=peer__server__pb2.MembershipPingRequest.SerializeToString,
+                response_deserializer=peer__server__pb2.Ack.FromString,
                 )
 
 
@@ -62,12 +62,12 @@ def add_PeerServerServicer_to_server(servicer, server):
             'MembershipPing': grpc.unary_unary_rpc_method_handler(
                     servicer.MembershipPing,
                     request_deserializer=peer__server__pb2.Empty.FromString,
-                    response_serializer=peer__server__pb2.Empty.SerializeToString,
+                    response_serializer=peer__server__pb2.Ack.SerializeToString,
             ),
             'MembershipPingReq': grpc.unary_unary_rpc_method_handler(
                     servicer.MembershipPingReq,
-                    request_deserializer=peer__server__pb2.Empty.FromString,
-                    response_serializer=peer__server__pb2.Empty.SerializeToString,
+                    request_deserializer=peer__server__pb2.MembershipPingRequest.FromString,
+                    response_serializer=peer__server__pb2.Ack.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -107,7 +107,7 @@ class PeerServer(object):
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/PeerServer/MembershipPing',
             peer__server__pb2.Empty.SerializeToString,
-            peer__server__pb2.Empty.FromString,
+            peer__server__pb2.Ack.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
 
@@ -122,7 +122,7 @@ class PeerServer(object):
             timeout=None,
             metadata=None):
         return grpc.experimental.unary_unary(request, target, '/PeerServer/MembershipPingReq',
-            peer__server__pb2.Empty.SerializeToString,
-            peer__server__pb2.Empty.FromString,
+            peer__server__pb2.MembershipPingRequest.SerializeToString,
+            peer__server__pb2.Ack.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)
