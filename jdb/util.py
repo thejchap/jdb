@@ -47,4 +47,12 @@ def now_ms() -> int:
 
 
 def byteify_keys(obj: OrderedDict) -> OrderedDict:
+    """hacky"""
+
     return OrderedDict({k.encode(): v for k, v in obj.items()})
+
+
+def stringify_keys(obj: OrderedDict) -> OrderedDict:
+    """hacky"""
+
+    return OrderedDict({k.decode(): v for k, v in obj.items()})

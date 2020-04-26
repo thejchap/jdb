@@ -19,11 +19,11 @@ class PeerServer(pgrpc.PeerServerServicer):
         incoming = crdt.LWWRegister(replica_id=request.replica_id)
         incoming.add_set = util.byteify_keys(request.add_set)
         incoming.remove_set = util.byteify_keys(request.remove_set)
-        state = self.node.membership.state_sync(incoming)
-        print(dict(self.node.membership.cluster_state))
+        state = self.node.membership.state_sync(incoming, peer_addr=request.peer_addr)
 
         return pb.MembershipState(
-            replica_id=state.replica_id,
+            replica_id=self.node.node_id,
+            peer_addr=self.node.p2p_addr,
             remove_set=state.remove_set,
             add_set=state.add_set,
         )

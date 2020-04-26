@@ -25,6 +25,8 @@ class Node:
         for key in ["p2p_addr", "client_addr"]:
             yield key, getattr(self, key)
 
+        yield "membership", util.stringify_keys(dict(self.membership.cluster_state))
+
     def __post_init__(self):
         """override"""
 
