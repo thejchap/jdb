@@ -10,24 +10,21 @@ from jdb import (
     transaction as txn,
     avltree as avl,
     util,
-    node,
+    node as nde,
     hlc,
-    const,
 )
 
 
-@fixture
-def database() -> db.DB:
-    """db test subject"""
-
-    return db.DB()
+@fixture()
+def node() -> nde.Node:
+    return nde.Node()
 
 
 @fixture
-def parser(database: db.DB):
+def parser(node: nde.Node):
     """parser test subject"""
 
-    return jql.JQL(db=database)
+    return jql.JQL(node=node)
 
 
 @fixture
@@ -37,7 +34,8 @@ def tree():
     return avl.AVLTree[int]()
 
 
-def test_basic(database: db.DB):
+def test_basic(node: nde.Node):
+    database = node.store
     database.put(b"a", b"hello")
     database.put(b"b", b"world")
 
@@ -48,7 +46,8 @@ def test_basic(database: db.DB):
     assert val2 == b"world"
 
 
-def test_basic_2(database: db.DB):
+def test_basic_2(node: nde.Node):
+    database = node.store
     database.put(b"hello", b"world")
     database.put(b"hello1", b"world1")
     database.put(b"hello2", b"world2")
@@ -75,7 +74,8 @@ def test_overflow():
         smalldb.put(key, value)
 
 
-def test_compression(database: db.DB):
+def test_compression(node: nde.Node):
+    database = node.store
     value = ("hello " * 1000 + "world " * 1000).encode("utf-8")
     key = b"hello"
     database.put(key, value)
@@ -192,18 +192,18 @@ def test_key_with_ts():
 
 
 def test_peer_merge_basic():
-    global_clock = hlc.HLC(node_id=0)
-    node1 = node.Node()
-    node2 = node.Node()
-    node1.cluster_state.clock = global_clock
-    node2.cluster_state.clock = global_clock
-    node1.cluster_state.add(b"a")
-    node2.cluster_state.remove(b"a")
-    node1.cluster_state.add(b"b")
-    node1.cluster_state.add(b"d")
-    node2.cluster_state.add(b"c")
-    node2.cluster_state.remove(b"d")
-    merged = dict(node1.cluster_state.merge(node2.cluster_state))
+    global_clock = hlc.HLC()
+    node1 = nde.Node(p2p_addr="", client_addr="")
+    node2 = nde.Node(p2p_addr="", client_addr="")
+    node1.membership.cluster_state.clock = global_clock
+    node2.membership.cluster_state.clock = global_clock
+    node1.membership.cluster_state.add(b"a")
+    node2.membership.cluster_state.remove(b"a")
+    node1.membership.cluster_state.add(b"b")
+    node1.membership.cluster_state.add(b"d")
+    node2.membership.cluster_state.add(b"c")
+    node2.membership.cluster_state.remove(b"d")
+    merged = dict(node1.membership.state_sync(node2.membership.cluster_state))
 
     assert b"b" in merged
     assert b"c" in merged
@@ -224,7 +224,7 @@ def test_peer_merge_concurrent():
 
 
 def test_hlc():
-    clock = hlc.HLC(node_id=const.MAX_UINT_32)
+    clock = hlc.HLC()
     clock.incr()
     clock.incr()
     clock.incr()

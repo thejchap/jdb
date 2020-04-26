@@ -31,7 +31,7 @@ def _do_statement(node: Node, tokens: ParseResults) -> Result:
         return json.dumps(dict(node)), None
 
     if "txn" in tokens:
-        return tokens.txn(node.store)
+        return tokens.txn(node)
 
     if len(tokens) == 1 and isinstance(tokens[0], Key):
         try:

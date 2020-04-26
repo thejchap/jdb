@@ -1,4 +1,5 @@
 from typing import Any, Tuple, Optional
+from threading import Thread
 from collections import OrderedDict
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from structlog import get_logger
@@ -89,6 +90,23 @@ class ClientServer(ThreadingTCPServer):
         self.logger = _LOGGER.bind(addr=f"{addr[0]}:{addr[1]}")
 
         super().__init__(addr, Client)
+
+    def process_request(self, request, client_address):
+        """override"""
+
+        thread = Thread(
+            target=self.process_request_thread,
+            args=(request, client_address),
+            daemon=self.daemon_threads,
+            name=f"ClientRequestThread-{':'.join(map(str, client_address))}",
+        )
+
+        if not thread.daemon and self.block_on_close:
+            if self._threads is None:
+                self._threads = []
+            self._threads.append(thread)
+
+        thread.start()
 
     def client_connected(self, client: Client):
         """add client"""

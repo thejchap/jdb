@@ -1,7 +1,7 @@
 from __future__ import annotations
 from threading import Lock
 from dataclasses import dataclass
-from jdb import util, types
+from jdb import util
 
 
 @dataclass
@@ -10,48 +10,56 @@ class HLCTimestamp:
 
     ts: int
     count: int
-    node_id: types.ID
 
     @classmethod
     def from_int(cls, packed: int) -> HLCTimestamp:
         """unpack"""
 
         string = str(packed)
-        node_id = int(string[-14:])
-        count = int(string[-16:-14])
-        ts = int(string[:-16] or "0")
+        count = int(string[-2:])
+        ts = int(string[:-2] or "0")
 
-        return cls(ts=ts, count=count, node_id=node_id)
+        return cls(ts=ts, count=count)
 
     def compare(self, other: HLCTimestamp) -> int:
         """compare ts"""
 
         if self.ts == other.ts:
             if self.count == other.count:
-                if self.node_id == other.node_id:
-                    return 0
-                return self.node_id - other.node_id
+                return 0
             return self.count - other.count
         return self.ts - other.ts
 
     def __int__(self):
         """pack. v naive implementation. redo for real sometime"""
 
-        string = "".join(
-            [str(self.ts), str(self.count).zfill(2), str(self.node_id).zfill(14)]
-        )
-
-        return int(string)
+        return int("".join([str(self.ts).zfill(16), str(self.count).zfill(2)]))
 
 
 class HLC:
     """hybrid logical clock"""
 
-    def __init__(self, node_id: types.ID):
+    def __init__(self):
         self.ts = util.now_ms()
         self.count = 0
         self.lock = Lock()
-        self.node_id = node_id
+
+    def recv(self, incoming: HLCTimestamp):
+        """process incoming ts"""
+
+        with self.lock:
+            now = util.now_ms()
+
+            if now > self.ts and now > incoming.ts:
+                self.ts = now
+                self.count = 0
+            elif self.ts == incoming.ts:
+                self.count = max(self.count, incoming.count)
+            elif self.ts > incoming.ts:
+                self.count += 1
+            else:
+                self.ts = incoming.ts
+                self.count = incoming.count + 1
 
     def incr(self) -> HLCTimestamp:
         """get new ts"""
@@ -64,4 +72,4 @@ class HLC:
             else:
                 self.count += 1
 
-            return HLCTimestamp(ts=self.ts, count=self.count, node_id=self.node_id)
+            return HLCTimestamp(ts=self.ts, count=self.count)

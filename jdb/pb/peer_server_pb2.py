@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x11peer_server.proto\"\xea\x01\n\x0fMembershipState\x12\x12\n\nreplica_id\x18\x01 \x01(\r\x12-\n\x07\x61\x64\x64_set\x18\x02 \x03(\x0b\x32\x1c.MembershipState.AddSetEntry\x12\x33\n\nremove_set\x18\x03 \x03(\x0b\x32\x1f.MembershipState.RemoveSetEntry\x1a-\n\x0b\x41\x64\x64SetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\x1a\x30\n\x0eRemoveSetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x02:\x02\x38\x01\"\x07\n\x05\x45mpty2m\n\nPeerServer\x12;\n\x13MembershipStateSync\x12\x10.MembershipState\x1a\x10.MembershipState\"\x00\x12\"\n\x0eMembershipPing\x12\x06.Empty\x1a\x06.Empty\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x11peer_server.proto\"\xea\x01\n\x0fMembershipState\x12\x12\n\nreplica_id\x18\x01 \x01(\r\x12-\n\x07\x61\x64\x64_set\x18\x02 \x03(\x0b\x32\x1c.MembershipState.AddSetEntry\x12\x33\n\nremove_set\x18\x03 \x03(\x0b\x32\x1f.MembershipState.RemoveSetEntry\x1a-\n\x0b\x41\x64\x64SetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\x1a\x30\n\x0eRemoveSetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\"\x07\n\x05\x45mpty2m\n\nPeerServer\x12;\n\x13MembershipStateSync\x12\x10.MembershipState\x1a\x10.MembershipState\"\x00\x12\"\n\x0eMembershipPing\x12\x06.Empty\x1a\x06.Empty\"\x00\x62\x06proto3'
 )
 
 
@@ -40,8 +40,8 @@ _MEMBERSHIPSTATE_ADDSETENTRY = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='MembershipState.AddSetEntry.value', index=1,
-      number=2, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),
@@ -77,8 +77,8 @@ _MEMBERSHIPSTATE_REMOVESETENTRY = _descriptor.Descriptor(
       serialized_options=None, file=DESCRIPTOR),
     _descriptor.FieldDescriptor(
       name='value', full_name='MembershipState.RemoveSetEntry.value', index=1,
-      number=2, type=2, cpp_type=6, label=1,
-      has_default_value=False, default_value=float(0),
+      number=2, type=4, cpp_type=4, label=1,
+      has_default_value=False, default_value=0,
       message_type=None, enum_type=None, containing_type=None,
       is_extension=False, extension_scope=None,
       serialized_options=None, file=DESCRIPTOR),

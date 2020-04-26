@@ -2,7 +2,7 @@ from threading import Thread
 from typing import Optional
 from dataclasses import dataclass, field
 from argparse import ArgumentParser
-from jdb import server, node, util, swim
+from jdb import server, node, util
 
 
 @dataclass
@@ -19,7 +19,6 @@ class Server:
     _client_server: server.ClientServer = field(init=False)
     _peer_server: server.PeerServer = field(init=False)
     _node: node.Node = field(init=False)
-    _swim: swim.SWIM = field(init=False)
 
     def __post_init__(self):
         """override"""
@@ -45,15 +44,17 @@ class Server:
             addr=(self.p2p_host, self.p2p_port), node=self._node
         )
 
-        self._swim = swim.SWIM(node=self._node)
-
     def start(self):
         """fire up server for client comms and p2p comms"""
 
         threads = [
-            Thread(target=self._start_client_server, daemon=True),
-            Thread(target=self._start_peer_server, daemon=True),
-            Thread(target=self._start_swim, daemon=True),
+            Thread(
+                target=self._start_client_server, daemon=True, name="ClientServerThread"
+            ),
+            Thread(
+                target=self._start_peer_server, daemon=True, name="PeerServerThread"
+            ),
+            Thread(target=self._start_membership, daemon=True, name="MembershipThread"),
         ]
 
         for thread in threads:
@@ -71,10 +72,10 @@ class Server:
 
         self._peer_server.serve_forever()
 
-    def _start_swim(self):
+    def _start_membership(self):
         """start up peer grpc server"""
 
-        self._swim.start()
+        self._node.membership.start()
 
     def _start_client_server(self):
         """start up server for client requests"""

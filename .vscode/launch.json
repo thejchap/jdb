@@ -5,13 +5,14 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "transaction",
+            "name": "server",
             "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/jdb/jql.py",
+            "program": "${workspaceFolder}/jdb/server/server.py",
             "console": "integratedTerminal",
             "args": [
-                "BEGIN TRANSACTION\nPUT hello world\nGET hello\nEND TRANSACTION;"
+                "-i",
+                "1"
             ]
         }
     ]

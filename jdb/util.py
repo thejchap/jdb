@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from typing import Tuple
+from collections import OrderedDict
 from uuid import uuid4 as uuid
 from xxhash import xxh32_intdigest
 from jdb.types import ID, Key, Timestamp
@@ -43,3 +44,7 @@ def now_ms() -> int:
     """ms since epoch"""
 
     return int(datetime.now(tz=timezone.utc).timestamp() * 1000)
+
+
+def byteify_keys(obj: OrderedDict) -> OrderedDict:
+    return OrderedDict({k.encode(): v for k, v in obj.items()})

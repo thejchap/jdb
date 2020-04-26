@@ -1,7 +1,6 @@
 from __future__ import annotations
 from threading import Lock
 from collections import OrderedDict
-from itertools import chain
 from jdb import types, hlc
 
 
@@ -14,7 +13,7 @@ class LWWRegister:
 
     def __init__(self, replica_id: types.ID):
         self.replica_id = replica_id
-        self.clock = hlc.HLC(node_id=replica_id)
+        self.clock = hlc.HLC()
         self.add_set: OrderedDict = OrderedDict()
         self.remove_set: OrderedDict = OrderedDict()
         self.lock = Lock()
@@ -39,29 +38,34 @@ class LWWRegister:
         with self.lock:
             self.remove_set[element] = int(self.clock.incr())
 
-    def merge(self, other: LWWRegister) -> LWWRegister:
+    def merge(self, incoming: LWWRegister) -> LWWRegister:
+        """threadsafe wrapper"""
+
+        with self.lock:
+            return self._merge(incoming)
+
+    def _merge(self, incoming: LWWRegister) -> LWWRegister:
         """merge registers"""
 
         sets = ["add_set", "remove_set"]
-        reg = LWWRegister(replica_id=self.replica_id)
 
-        for a_set in sets:
-            my_set, other_set = (
-                getattr(self, a_set).items(),
-                getattr(other, a_set).items(),
-            )
+        for key in sets:
+            incoming_set = getattr(incoming, key).items()
 
-            for elem, ts in chain(my_set, other_set):
-                existing = getattr(reg, a_set).get(elem)
+            for elem, ts in incoming_set:
+                ts = int(ts)
+                existing = getattr(self, key).get(elem)
 
                 if not existing:
-                    getattr(reg, a_set)[elem] = ts
+                    getattr(self, key)[elem] = ts
                     continue
 
-                ts_hlc = hlc.HLCTimestamp.from_int(ts)
-                ex_hlc = hlc.HLCTimestamp.from_int(existing)
+                incoming_ts = hlc.HLCTimestamp.from_int(ts)
+                my_ts = hlc.HLCTimestamp.from_int(existing)
 
-                if ts_hlc.compare(ex_hlc) > 0:
-                    getattr(reg, a_set)[elem] = ts
+                self.clock.recv(incoming_ts)
 
-        return reg
+                if incoming_ts.compare(my_ts) > 0:
+                    getattr(self, key)[elem] = ts
+
+        return self
