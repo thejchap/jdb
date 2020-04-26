@@ -11,8 +11,8 @@ class Node:
     """represents the running node"""
 
     logger: Any = field(init=False)
-    p2p_addr: str
-    client_addr: str
+    p2p_addr: str = ""
+    client_addr: str = ""
     store: db.DB = field(init=False)
     node_id: Optional[types.ID] = None
     membership: mbr.Membership = field(init=False)

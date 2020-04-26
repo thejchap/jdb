@@ -12,12 +12,8 @@ from jdb import (
     util,
     node as nde,
     hlc,
+    crdt,
 )
-
-
-@fixture()
-def node() -> nde.Node:
-    return nde.Node()
 
 
 @fixture
@@ -34,8 +30,8 @@ def tree():
     return avl.AVLTree[int]()
 
 
-def test_basic(node: nde.Node):
-    database = node.store
+def test_basic():
+    database = db.DB()
     database.put(b"a", b"hello")
     database.put(b"b", b"world")
 
@@ -46,8 +42,8 @@ def test_basic(node: nde.Node):
     assert val2 == b"world"
 
 
-def test_basic_2(node: nde.Node):
-    database = node.store
+def test_basic_2():
+    database = db.DB()
     database.put(b"hello", b"world")
     database.put(b"hello1", b"world1")
     database.put(b"hello2", b"world2")
@@ -74,8 +70,8 @@ def test_overflow():
         smalldb.put(key, value)
 
 
-def test_compression(node: nde.Node):
-    database = node.store
+def test_compression():
+    database = db.DB()
     value = ("hello " * 1000 + "world " * 1000).encode("utf-8")
     key = b"hello"
     database.put(key, value)
@@ -83,7 +79,8 @@ def test_compression(node: nde.Node):
     assert database.get(key) == value
 
 
-def test_ssi(database: db.DB):
+def test_ssi():
+    database = db.DB()
     database.put(b"a", b"b")
 
     txn1 = txn.Transaction(database)
@@ -148,7 +145,8 @@ def test_avl_near_3(tree: avl.AVLTree):
     assert tree.search(3, gte=True) == 3
 
 
-def test_parse_put(parser: jql.JQL):
+def test_parse_put():
+    parser = jql.JQL(node=nde.Node())
     statement = "put hello world;"
     _, txn = parser.call(statement)
 
@@ -156,7 +154,10 @@ def test_parse_put(parser: jql.JQL):
     assert txn.writes[b"hello"].value == b"world"
 
 
-def test_parse_get(parser: jql.JQL, database: db.DB):
+def test_parse_get():
+    node = nde.Node()
+    parser = jql.JQL(node)
+    database = node.store
     database.put(b"hello", b"world")
     statement = "get hello;"
     val, txn1 = parser.call(statement)
@@ -165,7 +166,8 @@ def test_parse_get(parser: jql.JQL, database: db.DB):
     assert val == "world"
 
 
-def test_parse_transaction(parser: jql.JQL):
+def test_parse_transaction():
+    parser = jql.JQL(node=nde.Node())
     statement = "begin\nput a b\nput c d\nend;"
     _, txn1 = parser.call(statement)
 
@@ -174,7 +176,8 @@ def test_parse_transaction(parser: jql.JQL):
     assert txn1.writes[b"c"].value == b"d"
 
 
-def test_parse_transaction_with_read(parser: jql.JQL):
+def test_parse_transaction_with_read():
+    parser = jql.JQL(node=nde.Node())
     statement = "begin\nput a b\nget a\nend;"
     _, txn1 = parser.call(statement)
 
@@ -193,17 +196,17 @@ def test_key_with_ts():
 
 def test_peer_merge_basic():
     global_clock = hlc.HLC()
-    node1 = nde.Node(p2p_addr="", client_addr="")
-    node2 = nde.Node(p2p_addr="", client_addr="")
-    node1.membership.cluster_state.clock = global_clock
-    node2.membership.cluster_state.clock = global_clock
-    node1.membership.cluster_state.add(b"a")
-    node2.membership.cluster_state.remove(b"a")
-    node1.membership.cluster_state.add(b"b")
-    node1.membership.cluster_state.add(b"d")
-    node2.membership.cluster_state.add(b"c")
-    node2.membership.cluster_state.remove(b"d")
-    merged = dict(node1.membership.state_sync(node2.membership.cluster_state))
+    cs1 = crdt.LWWRegister(replica_id=1)
+    cs2 = crdt.LWWRegister(replica_id=2)
+    cs1.clock = global_clock
+    cs2.clock = global_clock
+    cs1.add(b"a")
+    cs2.remove(b"a")
+    cs1.add(b"b")
+    cs1.add(b"d")
+    cs2.add(b"c")
+    cs2.remove(b"d")
+    merged = dict(cs1.merge(cs2))
 
     assert b"b" in merged
     assert b"c" in merged
@@ -213,11 +216,11 @@ def test_peer_merge_basic():
 
 @freeze_time("1970-01-01")
 def test_peer_merge_concurrent():
-    node1 = node.Node(node_id=1)
-    node2 = node.Node(node_id=2)
-    node1.cluster_state.remove(b"a")
-    node2.cluster_state.add(b"a")
-    merged = node1.cluster_state.merge(node2.cluster_state)
+    cs1 = crdt.LWWRegister(replica_id=1)
+    cs2 = crdt.LWWRegister(replica_id=2)
+    cs1.remove(b"a")
+    cs2.add(b"a")
+    merged = cs1.merge(cs2)
     merge_dict = dict(merged)
 
     assert b"a" in merge_dict

@@ -9,23 +9,26 @@ from jdb import server, node, util
 class Server:
     """top-level server. starts client and peer servers in threads"""
 
-    host: str
-    p2p_host: str
     port: int
     p2p_port: int
-    max_connections: int
+    max_connections: Optional[int] = 100
+    host: Optional[str] = "127.0.0.1"
+    p2p_host: Optional[str] = "127.0.0.1"
     join: Optional[str] = None
     node_id: Optional[str] = None
     _client_server: server.ClientServer = field(init=False)
     _peer_server: server.PeerServer = field(init=False)
     _node: node.Node = field(init=False)
+    p2p_addr: str = field(init=False)
 
     def __post_init__(self):
         """override"""
 
         p2p_addr = f"{self.p2p_host}:{self.p2p_port}"
+        self.p2p_addr = p2p_addr
         client_addr = f"{self.host}:{self.port}"
-        node_id = util.id_from_str(self.node_id) if self.node_id else None
+        node_id = util.id_from_str(self.node_id) if self.node_id else util.gen_id()
+        self.node_id = node_id
 
         self._node = node.Node(
             p2p_addr=p2p_addr, client_addr=client_addr, node_id=node_id,
@@ -64,8 +67,14 @@ class Server:
             for thread in threads:
                 thread.join()
         except KeyboardInterrupt:
-            self._client_server.shutdown()
-            self._peer_server.shutdown()
+            self.stop()
+
+    def stop(self):
+        """shut it down"""
+
+        self._client_server.shutdown()
+        self._peer_server.shutdown()
+        self._node.membership.stop()
 
     def _start_peer_server(self):
         """start up peer grpc server"""

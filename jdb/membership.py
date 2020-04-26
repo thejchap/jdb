@@ -3,7 +3,7 @@ from typing import Any, Dict, Optional, Set, List
 from contextlib import contextmanager
 from threading import Thread, Lock
 from queue import Queue
-from random import uniform, choice, choices
+from random import uniform, choice, sample
 from time import sleep
 import grpc
 from tenacity import retry, wait_fixed
@@ -40,7 +40,7 @@ class Peer:
         try:
             ack = self.transport.MembershipPing(msg)
             return ack.ack
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             return False
 
     def membership_ping_req(self, other: Peer) -> bool:
@@ -51,7 +51,7 @@ class Peer:
         try:
             res = self.transport.MembershipPingReq(msg)
             return res.ack
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             return False
 
     def membership_state_sync(
@@ -83,7 +83,7 @@ class Membership:
         failure_detection_interval: float = 0.5,
         failure_detection_subgroup_size: int = 3,
         gossip_subgroup_size: int = 3,
-        gossip_interval: float = 2,
+        gossip_interval: float = 1,
     ):
         self.failure_detection_subgroup_size = failure_detection_subgroup_size
         self.gossip_subgroup_size = gossip_subgroup_size
@@ -98,6 +98,7 @@ class Membership:
         self.cluster_state.add(self.node_key.encode())
         self.peers: Dict[types.ID, Peer] = {}
         self.logger = _LOGGER
+        self.stopped = False
         self.lock = Lock()
 
     @retry(wait=wait_fixed(1))
@@ -141,7 +142,7 @@ class Membership:
     def _gossip_loop(self):
         """run forever"""
 
-        while True:
+        while not self.stopped:
             self._gossip()
 
             sleep(
@@ -181,7 +182,7 @@ class Membership:
     def _failure_detection_loop(self):
         """SWIM fd sort of"""
 
-        while True:
+        while not self.stopped:
             self._probe_random_peer()
 
             sleep(
@@ -194,7 +195,7 @@ class Membership:
     def _investigation_loop(self):
         """process suspects off suspect queue"""
 
-        while True:
+        while not self.stopped:
             suspect = self.suspect_queue.get()
 
             if suspect is None:
@@ -250,20 +251,15 @@ class Membership:
         """grab k non-faulty peers for gossip"""
 
         peers = self._eligible_peers()
-
-        return choices(
-            self._eligible_peers(), k=min(self.gossip_subgroup_size, len(peers)),
-        )
+        k = min(self.gossip_subgroup_size, len(peers))
+        return sample(self._eligible_peers(), k=k,)
 
     def _failure_detection_subgroup(self) -> List[str]:
         """grab k non-faulty peers for failure verification"""
 
         peers = self._eligible_peers()
-
-        return choices(
-            self._eligible_peers(),
-            k=min(self.failure_detection_subgroup_size, len(peers)),
-        )
+        k = min(self.failure_detection_subgroup_size, len(peers))
+        return sample(self._eligible_peers(), k=k,)
 
     @contextmanager
     def _failure_detection(self, peer: Peer):
@@ -301,8 +297,9 @@ class Membership:
 
         all_peers = dict(self.cluster_state).items()
         my_key = self.node_key.encode()
-        now = util.now_ms() * 100  # factor in counter
-        i = _STARTUP_GRACE_PERIOD * 1000 * 100  # factor in counter
+        counter_pad = 100
+        now = util.now_ms() * counter_pad
+        i = _STARTUP_GRACE_PERIOD * 1000 * counter_pad
 
         return [
             k.decode()
@@ -324,6 +321,12 @@ class Membership:
         self._get_peer(incoming.replica_id, addr=peer_addr)
         return self.cluster_state.merge(incoming)
 
+    def stop(self):
+        """shut down"""
+
+        self.logger.info("membership.stop")
+        self.stopped = True
+
     def start(self):
         """fire up all components"""
 
@@ -342,6 +345,8 @@ class Membership:
                 name="MembershipInvestigationThread",
             ),
         ]
+
+        self.logger.info("membership.start")
 
         for thread in threads:
             thread.start()

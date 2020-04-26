@@ -208,7 +208,7 @@ logging-modules=logging
 bad-functions=map,filter,input
 
 # Good variable names which should always be accepted, separated by a comma
-good-names=i,e,s,_,fd,fp,db,ts
+good-names=i,e,s,_,fd,fp,db,ts,j,k,m,n
 
 # Bad variable names which should always be refused, separated by a comma
 bad-names=foo,bar,baz,toto,tutu,tata
