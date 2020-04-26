@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import Any, Dict, Optional, Set, List
 from contextlib import contextmanager
-from threading import Thread
+from threading import Thread, Lock
 from queue import Queue
 from random import uniform, choice, choices
 from time import sleep
@@ -83,7 +83,7 @@ class Membership:
         failure_detection_interval: float = 0.5,
         failure_detection_subgroup_size: int = 3,
         gossip_subgroup_size: int = 3,
-        sync_interval: float = 2,
+        gossip_interval: float = 2,
     ):
         self.failure_detection_subgroup_size = failure_detection_subgroup_size
         self.gossip_subgroup_size = gossip_subgroup_size
@@ -93,11 +93,12 @@ class Membership:
         self.node_id = node_id
         self.node_addr = node_addr
         self.node_key = f"{node_id}={node_addr}"
-        self.sync_interval = sync_interval
+        self.gossip_interval = gossip_interval
         self.cluster_state = crdt.LWWRegister(replica_id=node_id)
         self.cluster_state.add(self.node_key.encode())
         self.peers: Dict[types.ID, Peer] = {}
         self.logger = _LOGGER
+        self.lock = Lock()
 
     @retry(wait=wait_fixed(1))
     def bootstrap(self, join: str):
@@ -114,34 +115,38 @@ class Membership:
         merged = peer.membership_state_sync(
             self.cluster_state, from_addr=self.node_addr
         )
+
         return self.state_sync(merged, peer_addr=peer.addr)
 
     def _get_peer(self, peer_id: types.ID, addr: str) -> Peer:
         """not sure about this yet"""
 
-        if peer_id in self.peers:
-            return self.peers[peer_id]
+        with self.lock:
+            if peer_id in self.peers:
+                return self.peers[peer_id]
 
-        peer = Peer(addr=addr, node_id=peer_id, logger=self.logger)
-        self.peers[peer_id] = peer
-        self.cluster_state.add(peer.node_key.encode())
-        self.logger.info("membership.peer_added", peer=peer.node_key)
+            peer = Peer(addr=addr, node_id=peer_id, logger=self.logger)
+            self.peers[peer_id] = peer
+            self.cluster_state.add(peer.node_key.encode())
 
-        return peer
+            return peer
 
     def _remove_peer(self, peer: Peer):
         """remove from map and cluster state"""
 
-        self.cluster_state.remove(peer.node_key.encode())
-        del self.peers[peer.node_id]
-        self.logger.info("membership.peer_removed", peer=peer.node_key)
+        with self.lock:
+            self.cluster_state.remove(peer.node_key.encode())
+            del self.peers[peer.node_id]
 
-    def _sync_loop(self):
+    def _gossip_loop(self):
         """run forever"""
 
         while True:
-            self._sync_with_random_peer()
-            sleep(uniform(self.sync_interval - _JITTER, self.sync_interval + _JITTER))
+            self._gossip()
+
+            sleep(
+                uniform(self.gossip_interval - _JITTER, self.gossip_interval + _JITTER)
+            )
 
     def _probe_random_peer(self):
         """pick a rando from the group and probe it"""
@@ -156,18 +161,22 @@ class Membership:
         with self._failure_detection(target):
             target.membership_ping()
 
-    def _sync_with_random_peer(self):
-        """pick a rando from the group and sync with it"""
+    def _gossip(self):
+        """pick k randos from the group and sync with them"""
 
-        target = self._random_peer()
+        keys = self._gossip_subgroup()
+        peers: List[Peer] = []
 
-        if not target:
-            return
+        for key in keys:
+            peer_id, addr = key.split("=")
+            peer = self._get_peer(util.id_from_str(peer_id), addr=addr)
+            peers.append(peer)
 
-        self.logger.info("membership.sync", peer=target.node_key)
+        for peer in peers:
+            self.logger.info("membership.gossip", peer=peer.node_key)
 
-        with self._failure_detection(target):
-            self._sync_with(target)
+            with self._failure_detection(peer):
+                self._sync_with(peer)
 
     def _failure_detection_loop(self):
         """SWIM fd sort of"""
@@ -235,23 +244,7 @@ class Membership:
 
         self._remove_peer(suspect)
         self.suspects.remove(suspect.node_key)
-        self._disseminate()
-
-    def _disseminate(self):
-        keys = self._gossip_subgroup()
-        peers: List[Peer] = []
-
-        for key in keys:
-            peer_id, addr = key.split("=")
-            peer = self._get_peer(util.id_from_str(peer_id), addr=addr)
-            peers.append(peer)
-
-        for peer in peers:
-            peer.membership_state_sync(self.cluster_state, from_addr=self.node_addr)
-
-        self.logger.info(
-            "membership.disseminated", to=list(map(lambda p: p.node_key, peers)),
-        )
+        self._gossip()
 
     def _gossip_subgroup(self) -> List[str]:
         """grab k non-faulty peers for gossip"""
@@ -340,7 +333,9 @@ class Membership:
                 daemon=True,
                 name="MembershipFailureDetectionThread",
             ),
-            Thread(target=self._sync_loop, daemon=True, name="MembershipSyncThread"),
+            Thread(
+                target=self._gossip_loop, daemon=True, name="MembershipGossipThread"
+            ),
             Thread(
                 target=self._investigation_loop,
                 daemon=True,
