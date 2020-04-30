@@ -9,8 +9,8 @@ from jdb import server, node, util
 class Server:
     """top-level server. starts client and peer servers in threads"""
 
-    port: int
-    p2p_port: int
+    port: Optional[int] = 1337
+    p2p_port: Optional[int] = 1338
     max_connections: Optional[int] = 100
     host: Optional[str] = "127.0.0.1"
     p2p_host: Optional[str] = "127.0.0.1"
@@ -66,7 +66,7 @@ class Server:
         try:
             for thread in threads:
                 thread.join()
-        except KeyboardInterrupt:
+        except (KeyboardInterrupt, SystemExit):
             self.stop()
 
     def stop(self):
@@ -127,11 +127,11 @@ def _main():
 
     srv = Server(
         host=args.host,
-        port=args.port,
+        port=int(args.port),
         join=args.join,
         max_connections=args.max_connections,
         p2p_host=args.p2p_host,
-        p2p_port=args.p2p_port,
+        p2p_port=int(args.p2p_port),
         node_id=args.node_id,
     )
 
