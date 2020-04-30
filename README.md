@@ -5,15 +5,18 @@ a database for fun
 
 ### design
 #### api
-the database has a simple API with 3 operations:
 - `put`
 - `get`
 - `delete`
 
-## todo
-- WAL
-- Rebalance index AVL tree
-- Raft
+#### journal
+- [node membership/failure detection](https://github.com/thejchap/jdb/blob/master/docs/membership.md)
+
+#### tech debt
+- wal/disk
+- actually rebalance index
+- a/b avl tree vs skiplist
+- functional test for gossip propagation
 
 ## resources
 ### inspo
