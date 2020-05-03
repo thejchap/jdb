@@ -36,7 +36,7 @@ def main():
     )
 
     parser.add_argument(
-        "-z", "--set-size", type=int, help="number of keys to insert", default=50000
+        "-z", "--set-size", type=int, help="number of keys to insert", default=1000000
     )
 
     args = parser.parse_args()
@@ -45,9 +45,22 @@ def main():
     builder_threads = []
     writer_threads = []
     thread_count = 32
+    n = 1000
     batches = []
     val = bytes(bytearray([1] * VAL_SIZE))
-    funcs = {"redis": redis.set, "jdb": jdb.put}
+
+    def redis_txn(batch):
+        pipe = redis.pipeline()
+        for k, v in batch:
+            pipe.set(k, v)
+        pipe.execute()
+
+    def jdb_txn(batch):
+        with jdb.transaction() as txn:
+            for k, v in batch:
+                txn.write(k, v)
+
+    funcs = {"redis": redis_txn, "jdb": jdb_txn}
     func = funcs[args.store]
 
     LOGGER.info(
@@ -67,8 +80,9 @@ def main():
             batches[i].append([key, val])
 
     def populate(i: int):
-        for k, v in batches[i]:
-            func(k, v)
+        batch = batches[i]
+        for j in range(0, len(batch), n):
+            func(batch[j : j + n])
 
     for i in range(0, thread_count):
         builder_threads.append(Thread(target=build, args=(i,)))
