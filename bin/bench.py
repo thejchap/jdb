@@ -39,12 +39,16 @@ def main():
         "-z", "--set-size", type=int, help="number of keys to insert", default=1000000
     )
 
+    parser.add_argument(
+        "-t", "--threads", type=int, help="number of clients", default=32
+    )
+
     args = parser.parse_args()
     redis = Redis(host="localhost", port=6379, db=0)
     jdb = db.DB(compression=None)
     builder_threads = []
     writer_threads = []
-    thread_count = 32
+    thread_count = args.threads
     n = 1000
     batches = []
     val = bytes(bytearray([1] * VAL_SIZE))
