@@ -16,7 +16,7 @@ class DB:
 
     def __init__(
         self,
-        max_table_size: int = 128 << 20,
+        max_table_size: int = 1024 << 20,
         compression: Optional[cmp.CompressionType] = cmp.CompressionType.SNAPPY,
     ):
         self.oracle = orc.Oracle()

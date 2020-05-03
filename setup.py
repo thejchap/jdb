@@ -21,5 +21,6 @@ setup(
         "grpcio",
         "grpcio-tools",
         "tenacity",
+        "redis",
     ],
 )
