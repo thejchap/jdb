@@ -109,15 +109,26 @@ def test_ssi():
 
 
 def test_avl(tree: avl.AVLTree):
-    tree.insert(1)
-    tree.insert(2)
-    tree.insert(3)
-    tree.insert(4)
-    tree.insert(5)
-    tree.insert(6)
+    tree.insert(10)
+    tree.insert(20)
+    tree.insert(30)
+    tree.insert(40)
+    tree.insert(50)
+    tree.insert(25)
 
-    assert tree.search(3) == 3
-    assert not tree.search(7)
+    assert tree.root
+    assert tree.root.key == 30
+    assert tree.root.left
+    assert tree.root.left.key == 20
+    assert tree.root.left.left
+    assert tree.root.left.left.key == 10
+    assert tree.root.left.right
+    assert tree.root.left.right.key == 25
+    assert tree.root.right
+    assert tree.root.right.key == 40
+    assert tree.root.right.right
+    assert tree.root.right.right.key == 50
+    assert not tree.search(70)
 
 
 def test_avl_near(tree: avl.AVLTree):
