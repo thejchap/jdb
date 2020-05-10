@@ -22,5 +22,6 @@ setup(
         "grpcio-tools",
         "tenacity",
         "redis",
+        "lmdb",
     ],
 )

@@ -30,3 +30,4 @@ codegen:
 bench:
 	@python bin/bench.py -s jdb
 	@python bin/bench.py -s redis
+	@python bin/bench.py -s lmdb

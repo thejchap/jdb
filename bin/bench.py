@@ -1,3 +1,4 @@
+from os import path
 from typing import List
 from argparse import ArgumentParser
 from threading import Thread
@@ -5,11 +6,13 @@ from timeit import timeit
 from random import getrandbits
 from structlog import get_logger
 from redis import Redis
+import lmdb
 from jdb import db
 
 KEY_SIZE = 24
 VAL_SIZE = 8
 LOGGER = get_logger()
+DIRNAME = path.dirname(__file__)
 
 
 def _exec_threads(arr: List[Thread]):
@@ -31,7 +34,7 @@ def main():
         "--store",
         type=str,
         help="which store to use",
-        choices=["redis", "jdb"],
+        choices=["redis", "jdb", "lmdb"],
         required=True,
     )
 
@@ -46,12 +49,20 @@ def main():
     args = parser.parse_args()
     redis = Redis(host="localhost", port=6379, db=0)
     jdb = db.DB(compression=None)
+    lmdbenv = lmdb.open(
+        path=path.join(DIRNAME, "../tmp"), map_size=jdb.memtable.max_size, lock=True
+    )
     builder_threads = []
     writer_threads = []
     thread_count = args.threads
     n = 1000
     batches = []
     val = bytes(bytearray([1] * VAL_SIZE))
+
+    def lmdb_txn(batch):
+        with lmdbenv.begin(write=True) as txn:
+            for k, v in batch:
+                txn.put(k, v)
 
     def redis_txn(batch):
         pipe = redis.pipeline()
@@ -64,7 +75,7 @@ def main():
             for k, v in batch:
                 txn.write(k, v)
 
-    funcs = {"redis": redis_txn, "jdb": jdb_txn}
+    funcs = {"redis": redis_txn, "jdb": jdb_txn, "lmdb": lmdb_txn}
     func = funcs[args.store]
 
     LOGGER.info(

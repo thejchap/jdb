@@ -40,6 +40,7 @@ a database for fun
 - https://github.com/dgraph-io/badger
 - https://github.com/facebook/rocksdb
 - https://github.com/facebook/rocksdb/wiki/RocksDB-In-Memory-Workload-Performance-Benchmarks
+- https://blogs.kolabnow.com/2018/06/07/a-short-guide-to-lmdb
 ### lang
 - https://github.com/antirez/redis/blob/96a54866ab4694cf338af0441f28aa69e9643376/src/server.c
 - https://ply.readthedocs.io/en/latest/ply.html#parsing-basics
