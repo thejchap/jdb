@@ -1,7 +1,8 @@
 from typing import Optional, Any
 from dataclasses import dataclass, field
 from structlog import get_logger
-from jdb import db, util, types, membership as mbr
+from jdb import util, types, membership as mbr
+from jdb.storage import db
 
 _LOGGER = get_logger()
 

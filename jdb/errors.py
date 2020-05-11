@@ -1,14 +1,14 @@
 class ChecksumMismatch(Exception):
-    pass
+    """unable to verify crc32"""
 
 
 class TableOverflow(Exception):
-    pass
+    """max reached"""
 
 
 class NotFound(Exception):
-    pass
+    """key not found"""
 
 
 class Abort(Exception):
-    pass
+    """transaction aborted"""

@@ -3,7 +3,8 @@ from typing import Optional
 from binascii import crc32
 from dataclasses import dataclass
 import uvarint
-from jdb import errors as err, compression as cmp, const, types
+from jdb.storage import compression as cmp
+from jdb import errors as err, const, types
 
 
 @dataclass

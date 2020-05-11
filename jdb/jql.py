@@ -2,9 +2,9 @@ from typing import Callable, Tuple, Optional
 import json
 from pyparsing import CaselessKeyword, Word, alphanums, ParseResults, OneOrMore, Literal
 from jdb.node import Node
-from jdb.entry import Entry
+from jdb.storage.entry import Entry
 from jdb.errors import NotFound
-from jdb.transaction import Transaction
+from jdb.storage.transaction import Transaction
 from jdb.types import Key
 from jdb.const import (
     PUT,

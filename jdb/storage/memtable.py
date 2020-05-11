@@ -1,39 +1,36 @@
 from typing import Generator, Tuple, Optional
 from math import ceil
 import uvarint
-from .entry import Entry
-from .errors import TableOverflow
-from .avltree import AVLTree
-from .compression import Compression
-from .types import IndexEntry, Key, Offset
+from jdb.storage import entry as ent, avltree as avl, compression as cmp
+from jdb import errors as err, types
 
 
 class Memtable:
     """in memory representation of db"""
 
-    def __init__(self, max_size: int, compression: Compression):
+    def __init__(self, max_size: int, compression: cmp.Compression):
         self.max_size = max_size
         self._compression = compression
         self._arena = bytearray()
         self._entries_count = 0
         self._offset = 0
-        self._index = AVLTree[IndexEntry](comparison_key=lambda x: x[0])
+        self._index = avl.AVLTree[types.IndexEntry](comparison_key=lambda x: x[0])
 
-    def put(self, entry: Entry) -> None:
+    def put(self, entry: ent.Entry) -> None:
         """append an entry to the log"""
 
         encoded = entry.encode(compression=self._compression)
         size = len(encoded)
 
         if self.size() + size > self.max_size:
-            raise TableOverflow()
+            raise err.TableOverflow()
 
         self._index.insert((entry.key, self._offset))
         self._arena += encoded
         self._entries_count += 1
         self._offset += size
 
-    def get(self, key: Key) -> Optional[Entry]:
+    def get(self, key: types.Key) -> Optional[ent.Entry]:
         """find key and pointer in index, lookup value"""
 
         val = self._find_near(key)
@@ -55,7 +52,7 @@ class Memtable:
 
         return self._entries_count
 
-    def scan(self) -> Generator[Entry, None, None]:
+    def scan(self) -> Generator[ent.Entry, None, None]:
         """scan through log"""
 
         offset = 0
@@ -65,12 +62,12 @@ class Memtable:
             yield entry
             offset = offset + bytes_read
 
-    def _find_near(self, key: Key) -> Optional[IndexEntry]:
+    def _find_near(self, key: types.Key) -> Optional[types.IndexEntry]:
         """find the closest version of this key"""
 
         return self._index.search((key, 0), gte=True)
 
-    def _decode_at_offset(self, offset: Offset) -> Tuple[Entry, int]:
+    def _decode_at_offset(self, offset: types.Offset) -> Tuple[ent.Entry, int]:
         """
         given an offset, return the entry starting there
         and the byte length of the entry
@@ -80,6 +77,6 @@ class Memtable:
         block_end = offset + block_size + ceil(block_size.bit_length() / 8)
         bytes_read = block_end - offset
         chunk = self._arena[offset:block_end]
-        decoded = Entry.decode(chunk, compression=self._compression)
+        decoded = ent.Entry.decode(chunk, compression=self._compression)
 
         return (decoded, bytes_read)

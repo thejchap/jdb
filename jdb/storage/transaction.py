@@ -1,7 +1,8 @@
 from __future__ import annotations
 from collections import OrderedDict
 from typing import MutableSet
-from jdb import db as database, entry, util, types, errors
+from jdb.storage import db as database, entry as ent
+from jdb import util, types, errors
 
 
 class Transaction:
@@ -44,7 +45,7 @@ class Transaction:
     def write(self, key: types.Key, value: types.Value = bytes(), meta: int = 0):
         """add a pending write"""
 
-        self.writes[key] = entry.Entry(key=key, value=value, meta=meta)
+        self.writes[key] = ent.Entry(key=key, value=value, meta=meta)
 
     def commit(self) -> Transaction:
         """
@@ -68,7 +69,7 @@ class Transaction:
 
         for key, write in self.writes.items():
             key_with_ts = util.encode_key_with_ts(key=key, ts=commit_ts)
-            new_entry = entry.Entry(key=key_with_ts, value=write.value, meta=write.meta)
+            new_entry = ent.Entry(key=key_with_ts, value=write.value, meta=write.meta)
             writes.append(new_entry)
 
         self.db.write(writes)
