@@ -23,5 +23,6 @@ setup(
         "tenacity",
         "redis",
         "lmdb",
+        "sympy",
     ],
 )

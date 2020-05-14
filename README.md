@@ -47,6 +47,9 @@ a database for fun
 - https://redis.io/topics/protocol
 ### routing
 - https://people.math.gatech.edu/~yu/Papers/p2p.pdf
+- https://blog.yugabyte.com/four-data-sharding-strategies-we-analyzed-in-building-a-distributed-sql-database/
+- https://blog.memcachier.com/2017/09/01/maglev-our-new-consistent-hashing-scheme/
+- https://blog.acolyer.org/2016/03/21/maglev-a-fast-and-reliable-software-network-load-balancer/
 ### data integrity
 - https://en.wikipedia.org/wiki/Cyclic_redundancy_check
 ### time

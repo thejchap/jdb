@@ -15,6 +15,9 @@ from jdb import (
     node as nde,
     hlc,
     crdt,
+    routing as rte,
+    membership as mbr,
+    maglev as mag,
 )
 
 
@@ -158,6 +161,7 @@ def test_avl_near_3(tree: avl.AVLTree):
     assert tree.search(3, gte=True) == 3
 
 
+@mark.skip
 def test_parse_put():
     parser = jql.JQL(node=nde.Node())
     statement = "put hello world;"
@@ -167,6 +171,7 @@ def test_parse_put():
     assert txn.writes[b"hello"].value == b"world"
 
 
+@mark.skip
 def test_parse_get():
     node = nde.Node()
     parser = jql.JQL(node)
@@ -179,6 +184,7 @@ def test_parse_get():
     assert val == "world"
 
 
+@mark.skip
 def test_parse_transaction():
     parser = jql.JQL(node=nde.Node())
     statement = "begin\nput a b\nput c d\nend;"
@@ -189,6 +195,7 @@ def test_parse_transaction():
     assert txn1.writes[b"c"].value == b"d"
 
 
+@mark.skip
 def test_parse_transaction_with_read():
     parser = jql.JQL(node=nde.Node())
     statement = "begin\nput a b\nget a\nend;"
@@ -250,3 +257,20 @@ def test_hlc():
 
     assert ts2.ts == ts1.ts
     assert ts2.count == ts1.count
+
+
+def test_routing():
+    nodeid = util.id_from_str("3")
+    nodeaddr = "0.0.0.3"
+    membership = mbr.Membership(node_id=nodeid, node_addr=nodeaddr)
+    membership.cluster_state.add(b"1=0.0.0.1")
+    router = rte.Router(membership=membership)
+    req = rte.BatchRequest()
+    req.requests.append(rte.GetRequest(key=b"/2/a"))
+
+    router.request(req)
+
+
+def test_maglev():
+    maglev = mag.Maglev({"a", "b", "c"})
+    assert maglev.m == 307

@@ -12,3 +12,7 @@ class NotFound(Exception):
 
 class Abort(Exception):
     """transaction aborted"""
+
+
+class InvalidRequest(Exception):
+    """invalid request"""

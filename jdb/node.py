@@ -1,7 +1,7 @@
 from typing import Optional, Any
 from dataclasses import dataclass, field
 from structlog import get_logger
-from jdb import util, types, membership as mbr
+from jdb import util, types, membership as mbr, routing
 from jdb.storage import db
 
 _LOGGER = get_logger()
@@ -17,6 +17,7 @@ class Node:
     store: db.DB = field(init=False)
     node_id: Optional[types.ID] = None
     membership: mbr.Membership = field(init=False)
+    router: routing.Router = field(init=False)
 
     def __iter__(self):
         """return meta"""
@@ -36,7 +37,9 @@ class Node:
 
         self.logger = _LOGGER.bind(node_id=util.id_to_str(self.node_id))
         self.store = db.DB()
-        self.membership = mbr.Membership(node_id=self.node_id, node_addr=self.p2p_addr)
+        membership = mbr.Membership(node_id=self.node_id, node_addr=self.p2p_addr)
+        self.membership = membership
+        self.router = routing.Router(membership=membership)
         self.logger.info("node.initialized")
 
     def bootstrap(self, join: str):

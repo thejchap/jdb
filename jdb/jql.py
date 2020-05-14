@@ -1,11 +1,11 @@
 from typing import Callable, Tuple, Optional
 import json
 from pyparsing import CaselessKeyword, Word, alphanums, ParseResults, OneOrMore, Literal
+from jdb.types import Key
+from jdb.routing import PutRequest, GetRequest, BatchRequest, DeleteRequest
 from jdb.node import Node
-from jdb.storage.entry import Entry
 from jdb.errors import NotFound
 from jdb.storage.transaction import Transaction
-from jdb.types import Key
 from jdb.const import (
     PUT,
     GET,
@@ -17,11 +17,10 @@ from jdb.const import (
     END,
     TXN,
     TERMINATOR,
-    BIT_TOMBSTONE,
     INFO,
 )
 
-Result = Tuple[Optional[str], Optional[Transaction]]
+Result = Tuple[Optional[str], Optional[bool]]
 
 
 def _do_statement(node: Node, tokens: ParseResults) -> Result:
@@ -35,7 +34,9 @@ def _do_statement(node: Node, tokens: ParseResults) -> Result:
 
     if len(tokens) == 1 and isinstance(tokens[0], Key):
         try:
-            return node.store.get(tokens[0]).decode(), None
+            getreq = GetRequest(key=tokens[0])
+            req = BatchRequest(requests=[getreq])
+            return OK, node.router.request(req)
         except NotFound:
             return None, None
 
@@ -46,35 +47,29 @@ def _do_transaction(tokens: ParseResults) -> Callable[[Node], Result]:
     """return a fn to execute a transaction"""
 
     def wrapper(node: Node):
-        txn = Transaction(db=node.store)
+        req = BatchRequest(requests=tokens)
 
-        for tok in tokens:
-            if isinstance(tok, Key):
-                txn.read(tok)
-            else:
-                txn.write(tok.key, tok.value, tok.meta)
-
-        return OK, txn.commit()
+        return OK, node.router.request(req)
 
     return wrapper
 
 
-def _do_put(tokens: ParseResults) -> Entry:
+def _do_put(tokens: ParseResults) -> PutRequest:
     """build a txn entry from tokens"""
 
-    return Entry(key=tokens.key.encode(), value=tokens.value.encode())
+    return PutRequest(key=tokens.key.encode(), value=tokens.value.encode())
 
 
-def _do_get(tokens: ParseResults) -> Key:
+def _do_get(tokens: ParseResults) -> GetRequest:
     """just return the key"""
 
-    return tokens.key.encode()
+    return GetRequest(key=tokens.key.encode())
 
 
-def _do_delete(tokens: ParseResults) -> Entry:
+def _do_delete(tokens: ParseResults) -> DeleteRequest:
     """build a txn entry from tokens"""
 
-    return Entry(key=tokens.key.encode(), meta=BIT_TOMBSTONE)
+    return DeleteRequest(key=tokens.key.encode())
 
 
 class JQL:

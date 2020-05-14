@@ -60,10 +60,8 @@ class Client(StreamRequestHandler):
         self.logger.debug("statement", statement=f"{statement!r}")
 
         try:
-            result, txn = self.jql.call(statement=statement)
-            self.logger.debug(
-                "result", result=result, txnid=(txn.txnid if txn else None)
-            )
+            result, response = self.jql.call(statement=statement)
+            self.logger.debug("result", result=result, response=response)
             self.wfile.write(f"{result}\n".encode())
         except ParseException as err:
             self.logger.err(err)
