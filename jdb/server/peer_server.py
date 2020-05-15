@@ -17,7 +17,7 @@ class PeerServer(pgrpc.PeerServerServicer):
 
     def MembershipPingReq(self, request, context):
         try:
-            self.node.membership.ping(request.peer_id, request.peer_addr)
+            self.node.membership.ping(request.peer_name, request.peer_addr)
         except Exception:
             return pb.Ack(ack=False)
 
@@ -30,7 +30,7 @@ class PeerServer(pgrpc.PeerServerServicer):
         state = self.node.membership.state_sync(incoming, peer_addr=request.peer_addr)
 
         return pb.MembershipState(
-            replica_id=self.node.node_id,
+            replica_id=self.node.name,
             peer_addr=self.node.p2p_addr,
             remove_set=state.remove_set,
             add_set=state.add_set,

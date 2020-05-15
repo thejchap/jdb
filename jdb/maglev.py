@@ -11,8 +11,8 @@ class Maglev:
         self.nodes = list(nodes)
         self.n = len(nodes)
         self.m = nextprime(self.n * 100)
-        self._offset_seed = randint(0, 2 ** 32)
-        self._skip_seed = randint(0, 2 ** 32)
+        self._offset_seed = 2 << 30
+        self._skip_seed = 2 << 31
         self._permutation = self._gen_permutation()
         self.table = self._populate()
 
@@ -40,6 +40,9 @@ class Maglev:
 
     def _populate(self):
         """generate lookup table"""
+
+        if not self.nodes:
+            return
 
         n, m, perm = self.n, self.m, self._permutation
         next_ = [0] * n

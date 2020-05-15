@@ -1,7 +1,7 @@
 from __future__ import annotations
 from threading import Lock
 from collections import OrderedDict
-from jdb import types, hlc
+from jdb import hlc
 
 
 class LWWRegister:
@@ -11,7 +11,7 @@ class LWWRegister:
     been "deleted" from the register
     """
 
-    def __init__(self, replica_id: types.ID):
+    def __init__(self, replica_id: str):
         self.replica_id = replica_id
         self.clock = hlc.HLC()
         self.add_set: OrderedDict = OrderedDict()

@@ -1,106 +1,102 @@
 from typing import Callable, Tuple, Optional
 import json
-from pyparsing import CaselessKeyword, Word, alphanums, ParseResults, OneOrMore, Literal
-from jdb.types import Key
-from jdb.routing import PutRequest, GetRequest, BatchRequest, DeleteRequest
-from jdb.node import Node
-from jdb.errors import NotFound
-from jdb.storage.transaction import Transaction
-from jdb.const import (
-    PUT,
-    GET,
-    DELETE,
-    VALUE,
-    OK,
-    KEY,
-    BEGIN,
-    END,
-    TXN,
-    TERMINATOR,
-    INFO,
+from pyparsing import (
+    CaselessKeyword,
+    Word,
+    alphanums,
+    ParseResults,
+    OneOrMore,
+    Literal,
+    Combine,
 )
+import jdb.types as types
+import jdb.routing as rte
+import jdb.errors as err
+import jdb.const as k
+import jdb.node as nde
 
 Result = Tuple[Optional[str], Optional[bool]]
 
 
-def _do_statement(node: Node, tokens: ParseResults) -> Result:
+def _do_statement(node: nde.Node, tokens: ParseResults) -> Result:
     """entrypoint"""
 
-    if len(tokens) == 1 and isinstance(tokens[0], str) and tokens[0] == INFO:
+    if len(tokens) == 1 and isinstance(tokens[0], str) and tokens[0] == k.INFO:
         return json.dumps(dict(node)), None
 
     if "txn" in tokens:
         return tokens.txn(node)
 
-    if len(tokens) == 1 and isinstance(tokens[0], Key):
+    if len(tokens) == 1 and isinstance(tokens[0], types.Key):
         try:
-            getreq = GetRequest(key=tokens[0])
-            req = BatchRequest(requests=[getreq])
-            return OK, node.router.request(req)
-        except NotFound:
+            getreq = rte.GetRequest(key=tokens[0])
+            req = rte.BatchRequest(requests=[getreq])
+            return k.OK, node.router.request(req).get(req.key)
+        except err.NotFound:
             return None, None
 
-    return _do_transaction(tokens)(node)
+    return _do_batch_request(tokens)(node)
 
 
-def _do_transaction(tokens: ParseResults) -> Callable[[Node], Result]:
+def _do_batch_request(tokens: ParseResults) -> Callable[[nde.Node], Result]:
     """return a fn to execute a transaction"""
 
-    def wrapper(node: Node):
-        req = BatchRequest(requests=tokens)
+    def wrapper(node: nde.Node):
+        req = rte.BatchRequest(requests=tokens)
 
-        return OK, node.router.request(req)
+        return k.OK, node.router.request(req)
 
     return wrapper
 
 
-def _do_put(tokens: ParseResults) -> PutRequest:
+def _do_put(tokens: ParseResults) -> rte.PutRequest:
     """build a txn entry from tokens"""
 
-    return PutRequest(key=tokens.key.encode(), value=tokens.value.encode())
+    return rte.PutRequest(key=tokens.key.encode(), value=tokens.value.encode())
 
 
-def _do_get(tokens: ParseResults) -> GetRequest:
+def _do_get(tokens: ParseResults) -> rte.GetRequest:
     """just return the key"""
 
-    return GetRequest(key=tokens.key.encode())
+    return rte.GetRequest(key=tokens.key.encode())
 
 
-def _do_delete(tokens: ParseResults) -> DeleteRequest:
+def _do_delete(tokens: ParseResults) -> rte.DeleteRequest:
     """build a txn entry from tokens"""
 
-    return DeleteRequest(key=tokens.key.encode())
+    return rte.DeleteRequest(key=tokens.key.encode())
 
 
 class JQL:
     """this whole thing is a little wack. but yea - simple parser for cli commands"""
 
+    _key = Combine(Literal("/") + Word(alphanums) + Literal("/") + Word(alphanums))
     _put = (
-        CaselessKeyword(PUT).suppress()
-        + Word(alphanums).setResultsName(KEY)
-        + Word(alphanums).setResultsName(VALUE)
+        CaselessKeyword(k.PUT).suppress()
+        + _key.setResultsName(k.KEY)
+        + Word(alphanums).setResultsName(k.VALUE)
     ).addParseAction(_do_put)
     _get = (
-        CaselessKeyword(GET).suppress() + Word(alphanums).setResultsName(KEY)
+        CaselessKeyword(k.GET).suppress() + _key.setResultsName(k.KEY)
     ).addParseAction(_do_get)
     _delete = (
-        CaselessKeyword(DELETE).suppress() + Word(alphanums).setResultsName(KEY)
+        CaselessKeyword(k.DELETE).suppress() + _key.setResultsName(k.KEY)
     ).addParseAction(_do_delete)
-    _info = CaselessKeyword(INFO)
+    _info = CaselessKeyword(k.INFO)
     _operation = _put | _delete | _get
     _transaction = (
         (
-            CaselessKeyword(BEGIN).suppress()
+            CaselessKeyword(k.BEGIN).suppress()
             + OneOrMore(_operation)
-            + CaselessKeyword(END).suppress()
+            + CaselessKeyword(k.END).suppress()
         )
-        .addParseAction(_do_transaction)
-        .setResultsName(TXN)
+        .addParseAction(_do_batch_request)
+        .setResultsName(k.TXN)
     )
 
-    _statement = (_operation | _transaction | _info) + Literal(TERMINATOR).suppress()
+    _statement = (_operation | _transaction | _info) + Literal(k.TERMINATOR).suppress()
 
-    def __init__(self, node: Node):
+    def __init__(self, node: nde.Node):
         self._node = node
         self._statement.setParseAction(self._with_db(_do_statement))
 
@@ -112,7 +108,7 @@ class JQL:
     def _with_db(self, func: Callable) -> Callable:
         """pass node into actions"""
 
-        def wrapped(tokens: ParseResults) -> Transaction:
+        def wrapped(tokens: ParseResults):
             return func(self._node, tokens)
 
         return wrapped

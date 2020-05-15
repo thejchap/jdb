@@ -1,8 +1,13 @@
-from typing import Optional, Any
+from typing import Optional, Any, Dict
+from uuid import uuid4 as uuid
 from dataclasses import dataclass, field
 from structlog import get_logger
-from jdb import util, types, membership as mbr, routing
-from jdb.storage import db
+import jdb.storage as db
+import jdb.membership as mbr
+import jdb.routing as rte
+import jdb.util as util
+import jdb.const as k
+import jdb.types as types
 
 _LOGGER = get_logger()
 
@@ -15,16 +20,14 @@ class Node:
     p2p_addr: str = ""
     client_addr: str = ""
     store: db.DB = field(init=False)
-    node_id: Optional[types.ID] = None
+    name: Optional[str] = str(uuid())
     membership: mbr.Membership = field(init=False)
-    router: routing.Router = field(init=False)
+    router: "rte.Router" = field(init=False)
 
     def __iter__(self):
         """return meta"""
 
-        yield "node_id", util.id_to_str(self.node_id)
-
-        for key in ["p2p_addr", "client_addr"]:
+        for key in ["name", "p2p_addr", "client_addr"]:
             yield key, getattr(self, key)
 
         yield "membership", util.stringify_keys(dict(self.membership.cluster_state))
@@ -32,17 +35,28 @@ class Node:
     def __post_init__(self):
         """override"""
 
-        if not self.node_id:
-            self.node_id = util.gen_id()
-
-        self.logger = _LOGGER.bind(node_id=util.id_to_str(self.node_id))
+        self.logger = _LOGGER.bind(name=self.name)
         self.store = db.DB()
-        membership = mbr.Membership(node_id=self.node_id, node_addr=self.p2p_addr)
+        membership = mbr.Membership(node_name=self.name, node_addr=self.p2p_addr)
         self.membership = membership
-        self.router = routing.Router(membership=membership)
-        self.logger.info("node.initialized")
+        self.router = rte.Router(membership=membership, node=self)
+
+    def coordinate(self, req: "rte.BatchRequest") -> Dict[types.Key, types.Value]:
+        """handle a request i am responsible for"""
+
+        with self.store.transaction() as txn:
+            for op in req.requests:
+                if isinstance(op, rte.GetRequest):
+                    txn.read(op.key)
+                elif isinstance(op, rte.PutRequest):
+                    txn.write(op.key, op.value)
+                elif isinstance(op, rte.DeleteRequest):
+                    txn.write(op.key, meta=k.BIT_TOMBSTONE)
+
+        return txn.returning
 
     def bootstrap(self, join: str):
         """contact peer, merge cluster states"""
+
         self.membership.bootstrap(join)
         self.logger.info("node.bootstrap", join=join)

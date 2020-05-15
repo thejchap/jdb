@@ -1,6 +1,6 @@
 from __future__ import annotations
 from collections import OrderedDict
-from typing import MutableSet
+from typing import MutableSet, Dict
 from jdb.storage import db as database, entry as ent
 from jdb import util, types, errors
 
@@ -19,6 +19,7 @@ class Transaction:
         self.db = db
         self.writes = OrderedDict()
         self.reads = set()
+        self.returning: Dict[types.Key, types.Value] = {}
         self.txnid = util.gen_id()
         self.read_ts = db.oracle.read_ts()
 
@@ -40,6 +41,7 @@ class Transaction:
         if not version or version.isdeleted:
             raise errors.NotFound()
 
+        self.returning[key] = version.value
         return version.value
 
     def write(self, key: types.Key, value: types.Value = bytes(), meta: int = 0):

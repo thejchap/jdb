@@ -1,8 +1,9 @@
 from threading import Thread
+from uuid import uuid4 as uuid
 from typing import Optional
 from dataclasses import dataclass, field
 from argparse import ArgumentParser
-from jdb import server, node, util
+from jdb import server, node
 
 
 @dataclass
@@ -15,7 +16,7 @@ class Server:
     host: Optional[str] = "127.0.0.1"
     p2p_host: Optional[str] = "127.0.0.1"
     join: Optional[str] = None
-    node_id: Optional[str] = None
+    node_name: Optional[str] = str(uuid())
     _client_server: server.ClientServer = field(init=False)
     _peer_server: server.PeerServer = field(init=False)
     _node: node.Node = field(init=False)
@@ -27,11 +28,9 @@ class Server:
         p2p_addr = f"{self.p2p_host}:{self.p2p_port}"
         self.p2p_addr = p2p_addr
         client_addr = f"{self.host}:{self.port}"
-        node_id = util.id_from_str(self.node_id) if self.node_id else util.gen_id()
-        self.node_id = node_id
 
         self._node = node.Node(
-            p2p_addr=p2p_addr, client_addr=client_addr, node_id=node_id,
+            p2p_addr=p2p_addr, client_addr=client_addr, name=self.node_name
         )
 
         if self.join:
@@ -108,7 +107,9 @@ def _main():
         default="127.0.0.1",
         type=str,
     )
-    parser.add_argument("-i", "--node-id", help="node id", type=str)
+    parser.add_argument(
+        "-n", "--node-name", help="node name", type=str, default=str(uuid())
+    )
     parser.add_argument("-j", "--join", help="node address to join", type=str)
     parser.add_argument(
         "-r", "--p2p-port", help="port for p2p communication", default=1338, type=int,
@@ -132,7 +133,7 @@ def _main():
         max_connections=args.max_connections,
         p2p_host=args.p2p_host,
         p2p_port=int(args.p2p_port),
-        node_id=args.node_id,
+        node_name=args.node_name,
     )
 
     srv.start()

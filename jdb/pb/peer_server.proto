@@ -7,14 +7,14 @@ service PeerServer {
 }
 
 message MembershipState {
-    uint32 replica_id = 1;
+    string replica_id = 1;
     string peer_addr = 2;
     map<string, uint64> add_set = 3;
     map<string, uint64> remove_set = 4;
 }
 
 message MembershipPingRequest {
-    uint32 peer_id = 1;
+    string peer_name = 1;
     string peer_addr = 2;
 }
 

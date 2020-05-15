@@ -2,23 +2,16 @@
 
 from pytest import fixture, mark, raises
 from freezegun import freeze_time
-from jdb.storage import (
-    db,
-    entry as ent,
-    transaction as txn,
-    avltree as avl,
-)
-from jdb import (
-    errors as err,
-    jql,
-    util,
-    node as nde,
-    hlc,
-    crdt,
-    routing as rte,
-    membership as mbr,
-    maglev as mag,
-)
+import jdb.storage as db
+import jdb.errors as err
+import jdb.jql as jql
+import jdb.util as util
+import jdb.node as nde
+import jdb.hlc as hlc
+import jdb.crdt as crdt
+import jdb.routing as rte
+import jdb.membership as mbr
+import jdb.maglev as mag
 
 
 @fixture
@@ -32,7 +25,7 @@ def parser(node: nde.Node):
 def tree():
     """index test subject"""
 
-    return avl.AVLTree[int]()
+    return db.AVLTree[int]()
 
 
 def test_basic():
@@ -60,9 +53,9 @@ def test_basic_2():
 
 @mark.parametrize("key,value,meta", [(b"foo", b"world", 0), (b"hello", b"bar", 1)])
 def test_encode_decode(key, value, meta):
-    entry = ent.Entry(key=key, value=value, meta=meta)
+    entry = db.Entry(key=key, value=value, meta=meta)
     encoded = entry.encode()
-    assert ent.Entry.decode(encoded) == entry
+    assert db.Entry.decode(encoded) == entry
 
 
 def test_overflow():
@@ -88,9 +81,9 @@ def test_ssi():
     database = db.DB()
     database.put(b"a", b"b")
 
-    txn1 = txn.Transaction(database)
-    txn2 = txn.Transaction(database)
-    txn3 = txn.Transaction(database)
+    txn1 = db.Transaction(database)
+    txn2 = db.Transaction(database)
+    txn3 = db.Transaction(database)
 
     txn1.write(b"a", b"z")
     assert txn2.read(b"a") == b"b"
@@ -113,7 +106,7 @@ def test_ssi():
     assert txn3.commit_ts == 3
 
 
-def test_avl(tree: avl.AVLTree):
+def test_avl(tree: db.AVLTree):
     tree.insert(10)
     tree.insert(20)
     tree.insert(30)
@@ -136,7 +129,7 @@ def test_avl(tree: avl.AVLTree):
     assert not tree.search(70)
 
 
-def test_avl_near(tree: avl.AVLTree):
+def test_avl_near(tree: db.AVLTree):
     tree.insert(3)
     tree.insert(4)
     tree.insert(1)
@@ -144,7 +137,7 @@ def test_avl_near(tree: avl.AVLTree):
     assert tree.search(2, gte=True) == 3
 
 
-def test_avl_near_2(tree: avl.AVLTree):
+def test_avl_near_2(tree: db.AVLTree):
     tree.insert(2)
     tree.insert(1)
     tree.insert(5)
@@ -152,7 +145,7 @@ def test_avl_near_2(tree: avl.AVLTree):
     assert tree.search(4, gte=True) == 5
 
 
-def test_avl_near_3(tree: avl.AVLTree):
+def test_avl_near_3(tree: db.AVLTree):
     tree.insert(5)
     tree.insert(2)
     tree.insert(1)
@@ -260,11 +253,12 @@ def test_hlc():
 
 
 def test_routing():
-    nodeid = util.id_from_str("3")
-    nodeaddr = "0.0.0.3"
-    membership = mbr.Membership(node_id=nodeid, node_addr=nodeaddr)
-    membership.cluster_state.add(b"1=0.0.0.1")
-    router = rte.Router(membership=membership)
+    name = "3"
+    addr = "0.0.0.3"
+    node = nde.Node(name=name, p2p_addr=addr)
+    membership = mbr.Membership(node_name=name, node_addr=addr)
+    membership.add_peer("1", "0.0.0.1")
+    router = rte.Router(membership=membership, node=node)
     req = rte.BatchRequest()
     req.requests.append(rte.GetRequest(key=b"/2/a"))
 
@@ -274,3 +268,6 @@ def test_routing():
 def test_maglev():
     maglev = mag.Maglev({"a", "b", "c"})
     assert maglev.m == 307
+
+    for entry in maglev.table:
+        assert entry != -1
