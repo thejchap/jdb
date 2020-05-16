@@ -9,9 +9,7 @@ from pyparsing import (
     Literal,
     Combine,
 )
-import jdb.types as types
 import jdb.routing as rte
-import jdb.errors as err
 import jdb.const as k
 import jdb.node as nde
 
@@ -27,14 +25,6 @@ def _do_statement(node: nde.Node, tokens: ParseResults) -> Result:
     if "txn" in tokens:
         return tokens.txn(node)
 
-    if len(tokens) == 1 and isinstance(tokens[0], types.Key):
-        try:
-            getreq = rte.GetRequest(key=tokens[0])
-            req = rte.BatchRequest(requests=[getreq])
-            return k.OK, node.router.request(req).get(req.key)
-        except err.NotFound:
-            return None, None
-
     return _do_batch_request(tokens)(node)
 
 
@@ -43,8 +33,9 @@ def _do_batch_request(tokens: ParseResults) -> Callable[[nde.Node], Result]:
 
     def wrapper(node: nde.Node):
         req = rte.BatchRequest(requests=tokens)
+        ret = node.router.request(req)
 
-        return k.OK, node.router.request(req)
+        return k.OK, ret
 
     return wrapper
 

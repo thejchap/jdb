@@ -44,6 +44,8 @@ class Node:
     def coordinate(self, req: "rte.BatchRequest") -> Dict[types.Key, types.Value]:
         """handle a request i am responsible for"""
 
+        self.logger.info("node.coordinate.start", table=req.key, requests=req.requests)
+
         with self.store.transaction() as txn:
             for op in req.requests:
                 if isinstance(op, rte.GetRequest):
@@ -52,6 +54,8 @@ class Node:
                     txn.write(op.key, op.value)
                 elif isinstance(op, rte.DeleteRequest):
                     txn.write(op.key, meta=k.BIT_TOMBSTONE)
+
+        self.logger.info("node.coordinate.done", table=req.key, returning=txn.returning)
 
         return txn.returning
 

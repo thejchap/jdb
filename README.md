@@ -14,7 +14,6 @@ a database for fun
 
 #### tech debt
 - wal/disk
-- a/b avl tree vs skiplist
 - functional test for gossip propagation
 
 ## resources

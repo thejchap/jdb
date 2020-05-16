@@ -28,6 +28,11 @@ class PeerServerStub(object):
                 request_serializer=peer__server__pb2.MembershipPingRequest.SerializeToString,
                 response_deserializer=peer__server__pb2.Ack.FromString,
                 )
+        self.Coordinate = channel.unary_unary(
+                '/PeerServer/Coordinate',
+                request_serializer=peer__server__pb2.BatchRequest.SerializeToString,
+                response_deserializer=peer__server__pb2.BatchResponse.FromString,
+                )
 
 
 class PeerServerServicer(object):
@@ -51,6 +56,12 @@ class PeerServerServicer(object):
         context.set_details('Method not implemented!')
         raise NotImplementedError('Method not implemented!')
 
+    def Coordinate(self, request, context):
+        """Missing associated documentation comment in .proto file"""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
 
 def add_PeerServerServicer_to_server(servicer, server):
     rpc_method_handlers = {
@@ -68,6 +79,11 @@ def add_PeerServerServicer_to_server(servicer, server):
                     servicer.MembershipPingReq,
                     request_deserializer=peer__server__pb2.MembershipPingRequest.FromString,
                     response_serializer=peer__server__pb2.Ack.SerializeToString,
+            ),
+            'Coordinate': grpc.unary_unary_rpc_method_handler(
+                    servicer.Coordinate,
+                    request_deserializer=peer__server__pb2.BatchRequest.FromString,
+                    response_serializer=peer__server__pb2.BatchResponse.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -124,5 +140,21 @@ class PeerServer(object):
         return grpc.experimental.unary_unary(request, target, '/PeerServer/MembershipPingReq',
             peer__server__pb2.MembershipPingRequest.SerializeToString,
             peer__server__pb2.Ack.FromString,
+            options, channel_credentials,
+            call_credentials, compression, wait_for_ready, timeout, metadata)
+
+    @staticmethod
+    def Coordinate(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(request, target, '/PeerServer/Coordinate',
+            peer__server__pb2.BatchRequest.SerializeToString,
+            peer__server__pb2.BatchResponse.FromString,
             options, channel_credentials,
             call_credentials, compression, wait_for_ready, timeout, metadata)

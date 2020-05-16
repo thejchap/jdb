@@ -3,7 +3,7 @@ from time import sleep
 from concurrent.futures import ThreadPoolExecutor
 from structlog import get_logger
 import grpc
-from jdb import node as nde, crdt, util
+from jdb import node as nde, crdt, util, routing as rte, errors as err
 from jdb.pb import peer_server_pb2_grpc as pgrpc, peer_server_pb2 as pb
 
 _LOGGER = get_logger()
@@ -12,13 +12,33 @@ _LOGGER = get_logger()
 class PeerServer(pgrpc.PeerServerServicer):
     """server for p2p communication"""
 
+    def Coordinate(self, request, context):
+        req = rte.BatchRequest()
+
+        for re in request.requests:
+            which = re.WhichOneof("value")
+
+            if which == "put":
+                req.requests.append(rte.PutRequest(re.put.key, re.put.value))
+            elif which == "get":
+                req.requests.append(rte.GetRequest(re.get.key))
+            elif which == "delete":
+                req.requests.append(rte.DeleteRequest(re.delete.key))
+
+        try:
+            returning = self.node.coordinate(req)
+        except err.NotFound:
+            returning = {}
+
+        return pb.BatchResponse(key=request.key, returning=returning)
+
     def MembershipPing(self, request, context):
         return pb.Ack(ack=True)
 
     def MembershipPingReq(self, request, context):
         try:
             self.node.membership.ping(request.peer_name, request.peer_addr)
-        except Exception:
+        except Exception:  # pylint: disable=broad-except
             return pb.Ack(ack=False)
 
         return pb.Ack(ack=True)

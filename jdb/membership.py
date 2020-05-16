@@ -1,76 +1,20 @@
 from __future__ import annotations
-from typing import Any, Dict, Optional, Set, List
+from typing import Dict, Optional, Set, List
 from contextlib import contextmanager
 from threading import Thread, Lock
 from queue import Queue
 from random import uniform, choice, sample
 from time import sleep
-import grpc
 from tenacity import retry, wait_fixed
 from structlog import get_logger
-from jdb.pb import peer_server_pb2_grpc as pgrpc, peer_server_pb2 as pb
-from jdb import crdt, util, maglev as mag
+import jdb.crdt as crdt
+import jdb.util as util
+import jdb.maglev as mag
+import jdb.peer as pr
 
 _LOGGER = get_logger()
 _JITTER = 0.05
 _STARTUP_GRACE_PERIOD = 2
-
-
-class Peer:
-    """represents remote peer"""
-
-    def __init__(self, addr: str, name: str, logger: Any):
-        self.addr = addr
-        self.name = name
-        self.logger = logger.bind(name=name, addr=addr)
-        self.channel = grpc.insecure_channel(self.addr)
-        self.transport = pgrpc.PeerServerStub(self.channel)
-
-    @property
-    def node_key(self) -> str:
-        """concatenation, pretty much all the data we need for a peer"""
-
-        return f"{self.name}={self.addr}"
-
-    def membership_ping(self) -> bool:
-        """ping"""
-
-        msg = pb.Empty()
-
-        try:
-            ack = self.transport.MembershipPing(msg)
-            return ack.ack
-        except Exception:  # pylint: disable=broad-except
-            return False
-
-    def membership_ping_req(self, other: Peer) -> bool:
-        """ping"""
-
-        msg = pb.MembershipPingRequest(peer_name=other.name, peer_addr=other.addr)
-
-        try:
-            res = self.transport.MembershipPingReq(msg)
-            return res.ack
-        except Exception:  # pylint: disable=broad-except
-            return False
-
-    def membership_state_sync(
-        self, state: crdt.LWWRegister, from_addr: str
-    ) -> crdt.LWWRegister:
-        """rpc call wrapper"""
-
-        req = pb.MembershipState(
-            add_set=state.add_set,
-            remove_set=state.remove_set,
-            replica_id=state.replica_id,
-            peer_addr=from_addr,
-        )
-
-        res = self.transport.MembershipStateSync(req)
-        merged = crdt.LWWRegister(replica_id=res.replica_id)
-        merged.add_set = util.byteify_keys(res.add_set)
-        merged.remove_set = util.byteify_keys(res.remove_set)
-        return merged
 
 
 class Membership:
@@ -96,7 +40,7 @@ class Membership:
         self.gossip_interval = gossip_interval
         self.cluster_state = crdt.LWWRegister(replica_id=node_name)
         self.cluster_state.add(self.node_key.encode())
-        self.peers: Dict[str, Peer] = {}
+        self.peers: Dict[str, pr.Peer] = {}
         self._build_route_table()
         self.logger = _LOGGER
         self.stopped = False
@@ -110,7 +54,7 @@ class Membership:
         peer = self.add_peer(peer_name, addr)
         self._sync_with(peer)
 
-    def _sync_with(self, peer: Peer) -> crdt.LWWRegister:
+    def _sync_with(self, peer: pr.Peer) -> crdt.LWWRegister:
         """some sugar"""
 
         merged = peer.membership_state_sync(
@@ -119,17 +63,17 @@ class Membership:
 
         return self.state_sync(merged, peer_addr=peer.addr)
 
-    def add_peer(self, name: str, addr: str) -> Peer:
+    def add_peer(self, name: str, addr: str) -> pr.Peer:
         """add peer"""
 
         with self.lock:
-            peer = Peer(addr=addr, name=name, logger=self.logger)
+            peer = pr.Peer(addr=addr, name=name, logger=self.logger)
             self.peers[name] = peer
             self.cluster_state.add(peer.node_key.encode())
             self._build_route_table()
             return peer
 
-    def get_peer(self, name: str, addr: Optional[str]) -> Peer:
+    def get_peer(self, name: str, addr: Optional[str]) -> pr.Peer:
         """get or add"""
 
         if name in self.peers:
@@ -139,7 +83,7 @@ class Membership:
 
         raise Exception("unable to get or add peer")
 
-    def remove_peer(self, peer: Peer):
+    def remove_peer(self, peer: pr.Peer):
         """remove from map and cluster state"""
 
         with self.lock:
@@ -174,7 +118,7 @@ class Membership:
         """pick k randos from the group and sync with them"""
 
         keys = self._gossip_subgroup()
-        peers: List[Peer] = []
+        peers: List[pr.Peer] = []
 
         for key in keys:
             peer_name, addr = key.split("=")
@@ -212,13 +156,13 @@ class Membership:
             self._investigate(suspect)
             self.suspect_queue.task_done()
 
-    def _investigate(self, suspect: Peer):
+    def _investigate(self, suspect: pr.Peer):
         """indirectly probe suspect. todo: make async"""
 
         self.logger.info("membership.investigating", peer=suspect.node_key)
 
         keys = self._failure_detection_subgroup()
-        investigators: List[Peer] = []
+        investigators: List[pr.Peer] = []
 
         for key in keys:
             name, addr = key.split("=")
@@ -234,7 +178,7 @@ class Membership:
 
         self._failure_confirmed(suspect, by_peers=investigators)
 
-    def _failure_vetoed(self, suspect: Peer, by_peer: Peer):
+    def _failure_vetoed(self, suspect: pr.Peer, by_peer: pr.Peer):
         """another node was able to contact the suspect"""
 
         self.logger.info(
@@ -242,7 +186,7 @@ class Membership:
         )
         self.suspects.remove(suspect.node_key)
 
-    def _failure_confirmed(self, suspect: Peer, by_peers: List[Peer]):
+    def _failure_confirmed(self, suspect: pr.Peer, by_peers: List[pr.Peer]):
         """its actually faulty, update and disseminate"""
 
         self.logger.info(
@@ -270,7 +214,7 @@ class Membership:
         return sample(self._eligible_peers(), k=k,)
 
     @contextmanager
-    def _failure_detection(self, peer: Peer):
+    def _failure_detection(self, peer: pr.Peer):
         """meant to wrap a rpc call, if it fails, investigate peer"""
 
         try:
@@ -278,14 +222,14 @@ class Membership:
         except Exception:  # pylint: disable=broad-except
             self._add_suspect(peer)
 
-    def _add_suspect(self, peer: Peer):
+    def _add_suspect(self, peer: pr.Peer):
         """mark as suspect, publish to queue"""
 
         self.suspects.add(peer.node_key)
         self.suspect_queue.put(peer)
         self.logger.info("membership.add_suspect", peer=peer.node_key)
 
-    def _random_peer(self) -> Optional[Peer]:
+    def _random_peer(self) -> Optional[pr.Peer]:
         """pick a random peer from cluster state"""
 
         filtered = self._eligible_peers()
@@ -335,12 +279,15 @@ class Membership:
         return res
 
     def _build_route_table(self):
+        """rebuild rt"""
+
         nodekeys = map(lambda k: k[0].decode().split("=")[0], self.cluster_state)
         self.maglev = mag.Maglev(nodes=set(nodekeys))
 
-    def lookup_leaseholder(self, key: str) -> Optional[Peer]:
-        name = self.maglev.lookup(key)
+    def lookup_leaseholder(self, key: str) -> Optional[pr.Peer]:
+        """find whos responsible for a key. if self, return None"""
 
+        name = self.maglev.lookup(key)
         return self.peers.get(name)
 
     def stop(self):

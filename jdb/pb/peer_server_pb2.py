@@ -18,7 +18,7 @@ DESCRIPTOR = _descriptor.FileDescriptor(
   package='',
   syntax='proto3',
   serialized_options=None,
-  serialized_pb=b'\n\x11peer_server.proto\"\xfd\x01\n\x0fMembershipState\x12\x12\n\nreplica_id\x18\x01 \x01(\t\x12\x11\n\tpeer_addr\x18\x02 \x01(\t\x12-\n\x07\x61\x64\x64_set\x18\x03 \x03(\x0b\x32\x1c.MembershipState.AddSetEntry\x12\x33\n\nremove_set\x18\x04 \x03(\x0b\x32\x1f.MembershipState.RemoveSetEntry\x1a-\n\x0b\x41\x64\x64SetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\x1a\x30\n\x0eRemoveSetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\"=\n\x15MembershipPingRequest\x12\x11\n\tpeer_name\x18\x01 \x01(\t\x12\x11\n\tpeer_addr\x18\x02 \x01(\t\"\x07\n\x05\x45mpty\"\x12\n\x03\x41\x63k\x12\x0b\n\x03\x61\x63k\x18\x01 \x01(\x08\x32\xa0\x01\n\nPeerServer\x12;\n\x13MembershipStateSync\x12\x10.MembershipState\x1a\x10.MembershipState\"\x00\x12 \n\x0eMembershipPing\x12\x06.Empty\x1a\x04.Ack\"\x00\x12\x33\n\x11MembershipPingReq\x12\x16.MembershipPingRequest\x1a\x04.Ack\"\x00\x62\x06proto3'
+  serialized_pb=b'\n\x11peer_server.proto\"\xfd\x01\n\x0fMembershipState\x12\x12\n\nreplica_id\x18\x01 \x01(\t\x12\x11\n\tpeer_addr\x18\x02 \x01(\t\x12-\n\x07\x61\x64\x64_set\x18\x03 \x03(\x0b\x32\x1c.MembershipState.AddSetEntry\x12\x33\n\nremove_set\x18\x04 \x03(\x0b\x32\x1f.MembershipState.RemoveSetEntry\x1a-\n\x0b\x41\x64\x64SetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\x1a\x30\n\x0eRemoveSetEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\x04:\x02\x38\x01\"=\n\x15MembershipPingRequest\x12\x11\n\tpeer_name\x18\x01 \x01(\t\x12\x11\n\tpeer_addr\x18\x02 \x01(\t\"\x19\n\nGetRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\"(\n\nPutRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\x12\r\n\x05value\x18\x02 \x01(\x0c\"\x1c\n\rDeleteRequest\x12\x0b\n\x03key\x18\x01 \x01(\x0c\"q\n\x0cRequestUnion\x12\x1a\n\x03get\x18\x01 \x01(\x0b\x32\x0b.GetRequestH\x00\x12\x1a\n\x03put\x18\x02 \x01(\x0b\x32\x0b.PutRequestH\x00\x12 \n\x06\x64\x65lete\x18\x03 \x01(\x0b\x32\x0e.DeleteRequestH\x00\x42\x07\n\x05value\"<\n\x0c\x42\x61tchRequest\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x1f\n\x08requests\x18\x02 \x03(\x0b\x32\r.RequestUnion\"\x80\x01\n\rBatchResponse\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\x30\n\treturning\x18\x04 \x03(\x0b\x32\x1d.BatchResponse.ReturningEntry\x1a\x30\n\x0eReturningEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\"\x07\n\x05\x45mpty\"\x12\n\x03\x41\x63k\x12\x0b\n\x03\x61\x63k\x18\x01 \x01(\x08\x32\xcf\x01\n\nPeerServer\x12;\n\x13MembershipStateSync\x12\x10.MembershipState\x1a\x10.MembershipState\"\x00\x12 \n\x0eMembershipPing\x12\x06.Empty\x1a\x04.Ack\"\x00\x12\x33\n\x11MembershipPingReq\x12\x16.MembershipPingRequest\x1a\x04.Ack\"\x00\x12-\n\nCoordinate\x12\r.BatchRequest\x1a\x0e.BatchResponse\"\x00\x62\x06proto3'
 )
 
 
@@ -188,6 +188,267 @@ _MEMBERSHIPPINGREQUEST = _descriptor.Descriptor(
 )
 
 
+_GETREQUEST = _descriptor.Descriptor(
+  name='GetRequest',
+  full_name='GetRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='GetRequest.key', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=340,
+  serialized_end=365,
+)
+
+
+_PUTREQUEST = _descriptor.Descriptor(
+  name='PutRequest',
+  full_name='PutRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='PutRequest.key', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='PutRequest.value', index=1,
+      number=2, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=367,
+  serialized_end=407,
+)
+
+
+_DELETEREQUEST = _descriptor.Descriptor(
+  name='DeleteRequest',
+  full_name='DeleteRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='DeleteRequest.key', index=0,
+      number=1, type=12, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"",
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=409,
+  serialized_end=437,
+)
+
+
+_REQUESTUNION = _descriptor.Descriptor(
+  name='RequestUnion',
+  full_name='RequestUnion',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='get', full_name='RequestUnion.get', index=0,
+      number=1, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='put', full_name='RequestUnion.put', index=1,
+      number=2, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='delete', full_name='RequestUnion.delete', index=2,
+      number=3, type=11, cpp_type=10, label=1,
+      has_default_value=False, default_value=None,
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+    _descriptor.OneofDescriptor(
+      name='value', full_name='RequestUnion.value',
+      index=0, containing_type=None, fields=[]),
+  ],
+  serialized_start=439,
+  serialized_end=552,
+)
+
+
+_BATCHREQUEST = _descriptor.Descriptor(
+  name='BatchRequest',
+  full_name='BatchRequest',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='BatchRequest.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='requests', full_name='BatchRequest.requests', index=1,
+      number=2, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=554,
+  serialized_end=614,
+)
+
+
+_BATCHRESPONSE_RETURNINGENTRY = _descriptor.Descriptor(
+  name='ReturningEntry',
+  full_name='BatchResponse.ReturningEntry',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='BatchResponse.ReturningEntry.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='value', full_name='BatchResponse.ReturningEntry.value', index=1,
+      number=2, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[],
+  enum_types=[
+  ],
+  serialized_options=b'8\001',
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=697,
+  serialized_end=745,
+)
+
+_BATCHRESPONSE = _descriptor.Descriptor(
+  name='BatchResponse',
+  full_name='BatchResponse',
+  filename=None,
+  file=DESCRIPTOR,
+  containing_type=None,
+  fields=[
+    _descriptor.FieldDescriptor(
+      name='key', full_name='BatchResponse.key', index=0,
+      number=1, type=9, cpp_type=9, label=1,
+      has_default_value=False, default_value=b"".decode('utf-8'),
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+    _descriptor.FieldDescriptor(
+      name='returning', full_name='BatchResponse.returning', index=1,
+      number=4, type=11, cpp_type=10, label=3,
+      has_default_value=False, default_value=[],
+      message_type=None, enum_type=None, containing_type=None,
+      is_extension=False, extension_scope=None,
+      serialized_options=None, file=DESCRIPTOR),
+  ],
+  extensions=[
+  ],
+  nested_types=[_BATCHRESPONSE_RETURNINGENTRY, ],
+  enum_types=[
+  ],
+  serialized_options=None,
+  is_extendable=False,
+  syntax='proto3',
+  extension_ranges=[],
+  oneofs=[
+  ],
+  serialized_start=617,
+  serialized_end=745,
+)
+
+
 _EMPTY = _descriptor.Descriptor(
   name='Empty',
   full_name='Empty',
@@ -207,8 +468,8 @@ _EMPTY = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=340,
-  serialized_end=347,
+  serialized_start=747,
+  serialized_end=754,
 )
 
 
@@ -238,16 +499,37 @@ _ACK = _descriptor.Descriptor(
   extension_ranges=[],
   oneofs=[
   ],
-  serialized_start=349,
-  serialized_end=367,
+  serialized_start=756,
+  serialized_end=774,
 )
 
 _MEMBERSHIPSTATE_ADDSETENTRY.containing_type = _MEMBERSHIPSTATE
 _MEMBERSHIPSTATE_REMOVESETENTRY.containing_type = _MEMBERSHIPSTATE
 _MEMBERSHIPSTATE.fields_by_name['add_set'].message_type = _MEMBERSHIPSTATE_ADDSETENTRY
 _MEMBERSHIPSTATE.fields_by_name['remove_set'].message_type = _MEMBERSHIPSTATE_REMOVESETENTRY
+_REQUESTUNION.fields_by_name['get'].message_type = _GETREQUEST
+_REQUESTUNION.fields_by_name['put'].message_type = _PUTREQUEST
+_REQUESTUNION.fields_by_name['delete'].message_type = _DELETEREQUEST
+_REQUESTUNION.oneofs_by_name['value'].fields.append(
+  _REQUESTUNION.fields_by_name['get'])
+_REQUESTUNION.fields_by_name['get'].containing_oneof = _REQUESTUNION.oneofs_by_name['value']
+_REQUESTUNION.oneofs_by_name['value'].fields.append(
+  _REQUESTUNION.fields_by_name['put'])
+_REQUESTUNION.fields_by_name['put'].containing_oneof = _REQUESTUNION.oneofs_by_name['value']
+_REQUESTUNION.oneofs_by_name['value'].fields.append(
+  _REQUESTUNION.fields_by_name['delete'])
+_REQUESTUNION.fields_by_name['delete'].containing_oneof = _REQUESTUNION.oneofs_by_name['value']
+_BATCHREQUEST.fields_by_name['requests'].message_type = _REQUESTUNION
+_BATCHRESPONSE_RETURNINGENTRY.containing_type = _BATCHRESPONSE
+_BATCHRESPONSE.fields_by_name['returning'].message_type = _BATCHRESPONSE_RETURNINGENTRY
 DESCRIPTOR.message_types_by_name['MembershipState'] = _MEMBERSHIPSTATE
 DESCRIPTOR.message_types_by_name['MembershipPingRequest'] = _MEMBERSHIPPINGREQUEST
+DESCRIPTOR.message_types_by_name['GetRequest'] = _GETREQUEST
+DESCRIPTOR.message_types_by_name['PutRequest'] = _PUTREQUEST
+DESCRIPTOR.message_types_by_name['DeleteRequest'] = _DELETEREQUEST
+DESCRIPTOR.message_types_by_name['RequestUnion'] = _REQUESTUNION
+DESCRIPTOR.message_types_by_name['BatchRequest'] = _BATCHREQUEST
+DESCRIPTOR.message_types_by_name['BatchResponse'] = _BATCHRESPONSE
 DESCRIPTOR.message_types_by_name['Empty'] = _EMPTY
 DESCRIPTOR.message_types_by_name['Ack'] = _ACK
 _sym_db.RegisterFileDescriptor(DESCRIPTOR)
@@ -282,6 +564,56 @@ MembershipPingRequest = _reflection.GeneratedProtocolMessageType('MembershipPing
   })
 _sym_db.RegisterMessage(MembershipPingRequest)
 
+GetRequest = _reflection.GeneratedProtocolMessageType('GetRequest', (_message.Message,), {
+  'DESCRIPTOR' : _GETREQUEST,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:GetRequest)
+  })
+_sym_db.RegisterMessage(GetRequest)
+
+PutRequest = _reflection.GeneratedProtocolMessageType('PutRequest', (_message.Message,), {
+  'DESCRIPTOR' : _PUTREQUEST,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:PutRequest)
+  })
+_sym_db.RegisterMessage(PutRequest)
+
+DeleteRequest = _reflection.GeneratedProtocolMessageType('DeleteRequest', (_message.Message,), {
+  'DESCRIPTOR' : _DELETEREQUEST,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:DeleteRequest)
+  })
+_sym_db.RegisterMessage(DeleteRequest)
+
+RequestUnion = _reflection.GeneratedProtocolMessageType('RequestUnion', (_message.Message,), {
+  'DESCRIPTOR' : _REQUESTUNION,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:RequestUnion)
+  })
+_sym_db.RegisterMessage(RequestUnion)
+
+BatchRequest = _reflection.GeneratedProtocolMessageType('BatchRequest', (_message.Message,), {
+  'DESCRIPTOR' : _BATCHREQUEST,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:BatchRequest)
+  })
+_sym_db.RegisterMessage(BatchRequest)
+
+BatchResponse = _reflection.GeneratedProtocolMessageType('BatchResponse', (_message.Message,), {
+
+  'ReturningEntry' : _reflection.GeneratedProtocolMessageType('ReturningEntry', (_message.Message,), {
+    'DESCRIPTOR' : _BATCHRESPONSE_RETURNINGENTRY,
+    '__module__' : 'peer_server_pb2'
+    # @@protoc_insertion_point(class_scope:BatchResponse.ReturningEntry)
+    })
+  ,
+  'DESCRIPTOR' : _BATCHRESPONSE,
+  '__module__' : 'peer_server_pb2'
+  # @@protoc_insertion_point(class_scope:BatchResponse)
+  })
+_sym_db.RegisterMessage(BatchResponse)
+_sym_db.RegisterMessage(BatchResponse.ReturningEntry)
+
 Empty = _reflection.GeneratedProtocolMessageType('Empty', (_message.Message,), {
   'DESCRIPTOR' : _EMPTY,
   '__module__' : 'peer_server_pb2'
@@ -299,6 +631,7 @@ _sym_db.RegisterMessage(Ack)
 
 _MEMBERSHIPSTATE_ADDSETENTRY._options = None
 _MEMBERSHIPSTATE_REMOVESETENTRY._options = None
+_BATCHRESPONSE_RETURNINGENTRY._options = None
 
 _PEERSERVER = _descriptor.ServiceDescriptor(
   name='PeerServer',
@@ -306,8 +639,8 @@ _PEERSERVER = _descriptor.ServiceDescriptor(
   file=DESCRIPTOR,
   index=0,
   serialized_options=None,
-  serialized_start=370,
-  serialized_end=530,
+  serialized_start=777,
+  serialized_end=984,
   methods=[
   _descriptor.MethodDescriptor(
     name='MembershipStateSync',
@@ -334,6 +667,15 @@ _PEERSERVER = _descriptor.ServiceDescriptor(
     containing_service=None,
     input_type=_MEMBERSHIPPINGREQUEST,
     output_type=_ACK,
+    serialized_options=None,
+  ),
+  _descriptor.MethodDescriptor(
+    name='Coordinate',
+    full_name='PeerServer.Coordinate',
+    index=3,
+    containing_service=None,
+    input_type=_BATCHREQUEST,
+    output_type=_BATCHRESPONSE,
     serialized_options=None,
   ),
 ])
