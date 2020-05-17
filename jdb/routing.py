@@ -1,40 +1,48 @@
-from typing import Union, List, Optional, Dict
-import re
+from typing import Union, List
 from dataclasses import dataclass, field
 from structlog import get_logger
-from jdb.types import Key, Value
-from jdb.errors import InvalidRequest
-import jdb.membership as mbr  # pylint: disable=unused-import
-import jdb.node as nde  # pylint: disable=unused-import
-import jdb.types as types
+
+# pylint: disable=unused-import
+from jdb import (
+    membership as mbr,
+    node as nde,
+)
+from jdb import errors as err, types as t, const as k, storage as db
 
 LOGGER = get_logger()
-KEY_REGEX = re.compile(r"^\/([A-Za-z0-9]+)\/([A-Za-z0-9]+)$")
 
 
 @dataclass
 class DeleteRequest:
     """request type"""
 
-    key: Key
+    key: t.Key
 
 
 @dataclass
 class PutRequest:
     """request type"""
 
-    key: Key
-    value: Value
+    key: t.Key
+    value: t.Value
 
 
 @dataclass
 class GetRequest:
     """request type"""
 
-    key: Key
+    key: t.Key
 
 
 RequestUnion = Union[PutRequest, GetRequest, DeleteRequest]
+
+
+@dataclass
+class BatchResponse:
+    """wrap response"""
+
+    txn: db.TransactionMeta
+    table: str
 
 
 @dataclass
@@ -44,28 +52,19 @@ class BatchRequest:
     requests: List[RequestUnion] = field(default_factory=list)
 
     @property
-    def key(self) -> str:
+    def table(self) -> str:
         """key that is used to route the request"""
 
-        result: Optional[str] = None
+        if not self.requests:
+            raise err.InvalidRequest("no requests")
 
-        for req in self.requests:
-            match = KEY_REGEX.match(req.key.decode())
+        match = k.REQ_KEY_REGEX.match(self.requests[0].key.decode())
 
-            if not match:
-                raise InvalidRequest("key must be in /table/key format")
+        if not match:
+            raise err.InvalidRequest("invalid key")
 
-            table, _ = match.groups()
-
-            if not result:
-                result = table
-            elif table != result:
-                raise InvalidRequest("cross-table transactions not supported")
-
-        if not result:
-            raise InvalidRequest("unable to determine key for request")
-
-        return result
+        table, _ = match.groups()
+        return table
 
 
 class Router:
@@ -75,20 +74,28 @@ class Router:
         self._membership = membership
         self._node = node
 
-    def request(self, req: BatchRequest) -> Dict[types.Key, types.Value]:
+    def request(self, req: BatchRequest) -> BatchResponse:
         """send a request"""
 
-        peer = self._membership.lookup_leaseholder(req.key)
+        peer = self._membership.lookup_leaseholder(req.table)
 
         if not peer:
-            LOGGER.info("routing.request.local", key=req.key)
-            return self._node.coordinate(req)
+            LOGGER.info("routing.request.local", table=req.table)
+            txn = self._node.coordinate(req)
+            txnmeta = db.TransactionMeta(
+                txnid=txn.txnid,
+                read_ts=txn.read_ts,
+                commit_ts=txn.commit_ts,
+                returning=txn.returning,
+                status=txn.status,
+            )
+            return BatchResponse(txn=txnmeta, table=req.table)
 
         LOGGER.info(
             "routing.request.remote",
             peer_name=peer.name,
             peer_addr=peer.addr,
-            table=req.key,
+            table=req.table,
         )
 
         return peer.coordinate(req)

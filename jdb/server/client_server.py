@@ -1,10 +1,11 @@
 from typing import Any, Tuple, Optional
 from threading import Thread
 from collections import OrderedDict
+from uuid import uuid4 as uuid
 from socketserver import StreamRequestHandler, ThreadingTCPServer
 from structlog import get_logger
 from pyparsing import ParseException
-from jdb import jql, util, const, node as nde
+from jdb import jql, const, node as nde
 
 _LOGGER = get_logger()
 
@@ -21,11 +22,10 @@ class Client(StreamRequestHandler):
 
         addr = self.client_address
 
-        self.client_id = util.gen_id()
+        self.client_id = str(uuid())
         self.jql = jql.JQL(node=self.server.node)
         self.logger = self.server.logger.bind(
-            client_id=util.id_to_str(self.client_id),
-            client_address=f"{addr[0]}:{addr[1]}",
+            client_id=self.client_id, client_addr=f"{addr[0]}:{addr[1]}",
         )
         self.server.client_connected(self)
 
@@ -61,15 +61,26 @@ class Client(StreamRequestHandler):
 
         try:
             result, response = self.jql.call(statement=statement)
+
             self.logger.debug("result", result=result, response=response)
 
-            if not response:
+            if result:
                 self.wfile.write(f"{result}\n".encode())
-            else:
-                for _, v in response.items():
-                    self.wfile.write(f"{v.decode()}\n".encode())
+            elif response:
+                txn = response.txn
+
+                if txn.returning:
+                    for _, v in txn.returning.items():
+                        self.wfile.write(f"{v.decode() if v else ''}\n".encode())
+                else:
+                    self.wfile.write(f"{txn.txnid} {const.COMMITTED}\n".encode())
+            elif txn.isaborted:
+                self.wfile.write(f"{txn.txnid} {const.ABORTED}\n".encode())
+            elif txn.ispending:
+                self.wfile.write(f"{txn.txnid} {const.PENDING}\n".encode())
         except ParseException as err:
             self.logger.err(err)
+
             self.wfile.write(
                 f"{const.SYNTAX_ERR}: ln {err.lineno}, col {err.col}\n".encode()
             )
@@ -78,6 +89,7 @@ class Client(StreamRequestHandler):
 class ClientServer(ThreadingTCPServer):
     """server for client communication"""
 
+    allow_reuse_address = True
     daemon_threads = True
     clients: OrderedDict
 

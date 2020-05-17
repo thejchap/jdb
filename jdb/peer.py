@@ -1,8 +1,8 @@
 from __future__ import annotations
-from typing import Any, Dict
+from typing import Any
 import grpc
 from jdb.pb import peer_server_pb2_grpc as pgrpc, peer_server_pb2 as pb
-from jdb import crdt, util, routing as rte, types
+from jdb import crdt, util, routing as rte, storage as db
 
 
 class Peer:
@@ -21,7 +21,7 @@ class Peer:
 
         return f"{self.name}={self.addr}"
 
-    def coordinate(self, req: rte.BatchRequest) -> Dict[types.Key, types.Value]:
+    def coordinate(self, req: rte.BatchRequest) -> rte.BatchResponse:
         """coordinate"""
 
         requests = []
@@ -37,9 +37,18 @@ class Peer:
                 val = pb.DeleteRequest(key=re.key)
                 requests.append(pb.RequestUnion(delete=val))
 
-        msg = pb.BatchRequest(key=req.key, requests=requests)
+        msg = pb.BatchRequest(table=req.table, requests=requests)
         res = self.transport.Coordinate(msg)
-        return {k.encode(): v.encode() for k, v in res.returning.items()}
+        txn = res.txn
+        transaction = db.TransactionMeta(
+            status=db.TransactionStatus(txn.status),
+            read_ts=txn.read_ts,
+            commit_ts=txn.commit_ts,
+            returning={k.encode(): v.encode() for k, v in txn.returning.items()},
+            txnid=txn.txnid,
+        )
+
+        return rte.BatchResponse(txn=transaction, table=res.table)
 
     def membership_ping(self) -> bool:
         """ping"""

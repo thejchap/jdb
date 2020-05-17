@@ -51,6 +51,15 @@ def test_basic_2():
     assert val == b"world2"
 
 
+def test_correct_key():
+    database = db.DB()
+    database.put(b"/world/1", b"hello")
+
+    val = database.get(b"/hello/world")
+
+    assert not val
+
+
 @mark.parametrize("key,value,meta", [(b"foo", b"world", 0), (b"hello", b"bar", 1)])
 def test_encode_decode(key, value, meta):
     entry = db.Entry(key=key, value=value, meta=meta)
@@ -260,7 +269,7 @@ def test_routing():
     membership.add_peer("1", "0.0.0.1")
     router = rte.Router(membership=membership, node=node)
     req = rte.BatchRequest()
-    req.requests.append(rte.GetRequest(key=b"/2/a"))
+    req.requests.append(rte.PutRequest(key=b"/2/a", value=b"1"))
 
     router.request(req)
 

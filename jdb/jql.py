@@ -35,7 +35,7 @@ def _do_batch_request(tokens: ParseResults) -> Callable[[nde.Node], Result]:
         req = rte.BatchRequest(requests=tokens)
         ret = node.router.request(req)
 
-        return k.OK, ret
+        return None, ret
 
     return wrapper
 

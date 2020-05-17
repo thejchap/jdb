@@ -1,4 +1,4 @@
-from typing import Tuple, TypeVar, Callable, Any
+from typing import Tuple, TypeVar, Callable, Any, Dict, Optional
 
 ID = int
 Key = bytes
@@ -8,3 +8,4 @@ Timestamp = int
 IndexEntry = Tuple[Key, Offset]
 T = TypeVar("T")
 Comparator = Callable[[Any, T, T], int]
+Returning = Dict[Key, Optional[Value]]

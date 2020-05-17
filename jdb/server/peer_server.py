@@ -3,7 +3,7 @@ from time import sleep
 from concurrent.futures import ThreadPoolExecutor
 from structlog import get_logger
 import grpc
-from jdb import node as nde, crdt, util, routing as rte, errors as err
+from jdb import node as nde, crdt, util, routing as rte
 from jdb.pb import peer_server_pb2_grpc as pgrpc, peer_server_pb2 as pb
 
 _LOGGER = get_logger()
@@ -25,12 +25,17 @@ class PeerServer(pgrpc.PeerServerServicer):
             elif which == "delete":
                 req.requests.append(rte.DeleteRequest(re.delete.key))
 
-        try:
-            returning = self.node.coordinate(req)
-        except err.NotFound:
-            returning = {}
+        txn = self.node.coordinate(req)
 
-        return pb.BatchResponse(key=request.key, returning=returning)
+        transaction = pb.Transaction(
+            txnid=txn.txnid,
+            status=txn.status.value,
+            read_ts=txn.read_ts,
+            commit_ts=txn.commit_ts,
+            returning={k: v if v else b"" for k, v in txn.returning.items()},
+        )
+
+        return pb.BatchResponse(table=request.table, txn=transaction)
 
     def MembershipPing(self, request, context):
         return pb.Ack(ack=True)

@@ -1,13 +1,14 @@
-from typing import Optional, Any, Dict
+from typing import Optional, Any
 from uuid import uuid4 as uuid
 from dataclasses import dataclass, field
 from structlog import get_logger
-import jdb.storage as db
-import jdb.membership as mbr
-import jdb.routing as rte
-import jdb.util as util
-import jdb.const as k
-import jdb.types as types
+from jdb import (
+    storage as db,
+    membership as mbr,
+    routing as rte,
+    util,
+    const as k,
+)
 
 _LOGGER = get_logger()
 
@@ -41,10 +42,12 @@ class Node:
         self.membership = membership
         self.router = rte.Router(membership=membership, node=self)
 
-    def coordinate(self, req: "rte.BatchRequest") -> Dict[types.Key, types.Value]:
+    def coordinate(self, req: "rte.BatchRequest") -> db.Transaction:
         """handle a request i am responsible for"""
 
-        self.logger.info("node.coordinate.start", table=req.key, requests=req.requests)
+        self.logger.info(
+            "node.coordinate.start", table=req.table, requests=req.requests
+        )
 
         with self.store.transaction() as txn:
             for op in req.requests:
@@ -55,9 +58,11 @@ class Node:
                 elif isinstance(op, rte.DeleteRequest):
                     txn.write(op.key, meta=k.BIT_TOMBSTONE)
 
-        self.logger.info("node.coordinate.done", table=req.key, returning=txn.returning)
+        self.logger.info(
+            "node.coordinate.done", table=req.table, returning=txn.returning
+        )
 
-        return txn.returning
+        return txn
 
     def bootstrap(self, join: str):
         """contact peer, merge cluster states"""

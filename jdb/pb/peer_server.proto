@@ -41,13 +41,32 @@ message RequestUnion {
 }
 
 message BatchRequest {
-    string key = 1;
+    string table = 1;
     repeated RequestUnion requests = 2;
 }
 
+message HLC {
+    uint64 ts = 1;
+    uint32 count = 2;
+}
+
+enum TransactionStatus {
+    PENDING = 0;
+    COMMITTED = 1;
+    ABORTED = 2;
+}
+
+message Transaction {
+    string txnid = 1;
+    TransactionStatus status = 2;
+    map<string, string> returning = 3;
+    uint64 read_ts = 4;
+    uint64 commit_ts = 5;
+}
+
 message BatchResponse {
-    string key = 1;
-    map<string, string> returning = 4;
+    string table = 1;
+    Transaction txn = 2;
 }
 
 message Empty {}
