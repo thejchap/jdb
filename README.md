@@ -10,7 +10,7 @@ a database for fun
 - `delete`
 
 #### journal
-- [node membership/failure detection](https://github.com/thejchap/jdb/blob/master/docs/membership.md)
+- [node membership/failure detection](https://github.com/thejchap/jdb/blob/master/docs/journal/01_membership.md)
 
 #### tech debt
 - wal/disk

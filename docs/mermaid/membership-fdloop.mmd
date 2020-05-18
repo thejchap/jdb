@@ -1,0 +1,23 @@
+sequenceDiagram
+	participant node1
+	participant node2
+	participant node3
+	autonumber
+	node2->>node1: state sync
+	node1-->>node2: cluster state
+	node3->>node2: state sync
+	node2-->>node3: cluster state
+	loop failure detection loop (0.5s)
+		node1->>node2: ping
+		node2-->>node1: ack
+		node2->>node1: ping
+		node1-->>node2: ack
+		node2->>node3: ping
+		node3-->>node2: ack
+		node3->>node2: ping
+		node2-->>node3: ack
+		node3->>node1: ping
+		node1-->>node3: ack
+		node1->>node3: ping
+		node3-->>node1: ack
+	end

@@ -13,7 +13,7 @@ import jdb.maglev as mag
 import jdb.peer as pr
 
 _LOGGER = get_logger()
-_JITTER = 0.05
+_JITTER = 0.1
 _STARTUP_GRACE_PERIOD = 2
 
 

@@ -1,0 +1,28 @@
+sequenceDiagram
+	participant node1
+	participant node2
+	participant node3
+	participant node4
+	participant node5
+	autonumber
+	rect rgba(255,0,0)
+		node1->>node2: ping
+	end
+	par investigate node2
+		node1->>node3: ping req (node2)
+		node1->>node4: ping req (node2)
+		node1->>node5: ping req (node2)
+	end
+	par investigating node2
+		rect rgba(255,0,0)
+			node3->>node2: ping
+			node4->>node2: ping
+			node5->>node2: ping
+		end
+	end
+	par node2 failure confirmed
+		node3-->>node1: failure confirmed (node2)
+		node4-->>node1: failure confirmed (node2)
+		node5-->>node1: failure confirmed (node2)
+	end
+	node1->>node4: gossip (random peer)
