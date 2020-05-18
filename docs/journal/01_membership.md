@@ -91,6 +91,9 @@ as per the SWIM protocol, when a node is detected as faulty by the probing node,
 - a short grace period is allowed for each node to start up before we add it in to our list of available peers to communicate with. also, a small amount of jitter is added to timing for these cycles to even out request loads a bit.
 - requests are routed among the nodes using Maglev hashing<sup>[4](#footnote-maglev)</sup>. this will be covered in another post.
 
+### todo
+- how differs from SWIM
+
 ## sources
 - <a name="footnote-chord">1</a>: [https://en.wikipedia.org/wiki/Chord_(peer-to-peer)](https://en.wikipedia.org/wiki/Chord_(peer-to-peer))
 - <a name="footnote-kademlia">2</a>: [https://en.wikipedia.org/wiki/Kademlia](https://en.wikipedia.org/wiki/Kademlia)
