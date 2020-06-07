@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import Dict, Optional, Set, List
 from contextlib import contextmanager
 from threading import Thread, Lock
+from concurrent.futures import ThreadPoolExecutor
 from queue import Queue
 from random import uniform, choice, sample
 from time import sleep
@@ -13,8 +14,12 @@ import jdb.maglev as mag
 import jdb.peer as pr
 
 _LOGGER = get_logger()
-_JITTER = 0.1
-_STARTUP_GRACE_PERIOD = 2
+_JITTER = 0.01
+STARTUP_GRACE_PERIOD = 2
+FD_INTERVAL = 0.5
+FD_SUBGROUP_SIZE = 3
+GOSSIP_SUBGROUP_SIZE = 5
+GOSSIP_INTERVAL = 0.2
 
 
 class Membership:
@@ -24,15 +29,16 @@ class Membership:
         self,
         node_name: str,
         node_addr: str,
-        failure_detection_interval: float = 0.5,
-        failure_detection_subgroup_size: int = 3,
-        gossip_subgroup_size: int = 3,
-        gossip_interval: float = 1,
+        failure_detection_interval: float = FD_INTERVAL,
+        failure_detection_subgroup_size: int = FD_SUBGROUP_SIZE,
+        gossip_subgroup_size: int = GOSSIP_SUBGROUP_SIZE,
+        gossip_interval: float = GOSSIP_INTERVAL,
     ):
         self.failure_detection_subgroup_size = failure_detection_subgroup_size
         self.gossip_subgroup_size = gossip_subgroup_size
         self.failure_detection_interval = failure_detection_interval
         self.suspects: Set[str] = set()
+        self._choices: Set[str] = set()
         self.suspect_queue: Queue = Queue()
         self.node_name = node_name
         self.node_addr = node_addr
@@ -42,9 +48,24 @@ class Membership:
         self.cluster_state.add(self.node_key.encode())
         self.peers: Dict[str, pr.Peer] = {}
         self._build_route_table()
-        self.logger = _LOGGER
+        self.logger = _LOGGER.bind(node=self.node_key)
         self.stopped = False
         self.lock = Lock()
+        self.threads = [
+            Thread(
+                target=self._failure_detection_loop,
+                daemon=True,
+                name="MembershipFailureDetectionThread",
+            ),
+            Thread(
+                target=self._gossip_loop, daemon=True, name="MembershipGossipThread"
+            ),
+            Thread(
+                target=self._investigation_loop,
+                daemon=True,
+                name="MembershipInvestigationThread",
+            ),
+        ]
 
     @retry(wait=wait_fixed(1))
     def bootstrap(self, join: str):
@@ -88,7 +109,8 @@ class Membership:
 
         with self.lock:
             self.cluster_state.remove(peer.node_key.encode())
-            del self.peers[peer.name]
+            if peer.name in self.peers:
+                del self.peers[peer.name]
             self._build_route_table()
 
     def _gossip_loop(self):
@@ -118,6 +140,10 @@ class Membership:
         """pick k randos from the group and sync with them"""
 
         keys = self._gossip_subgroup()
+
+        if not keys:
+            return
+
         peers: List[pr.Peer] = []
 
         for key in keys:
@@ -125,11 +151,14 @@ class Membership:
             peer = self.get_peer(peer_name, addr=addr)
             peers.append(peer)
 
-        for peer in peers:
-            self.logger.info("membership.gossip", peer=peer.node_key)
+        self.logger.info("membership.gossip", peers=[p.node_key for p in peers])
 
-            with self._failure_detection(peer):
-                self._sync_with(peer)
+        with ThreadPoolExecutor(max_workers=5) as e:
+            for peer in peers:
+                task = e.submit(self._sync_with, peer)
+
+                with self._failure_detection(peer):
+                    task.result()
 
     def _failure_detection_loop(self):
         """SWIM fd sort of"""
@@ -159,8 +188,6 @@ class Membership:
     def _investigate(self, suspect: pr.Peer):
         """indirectly probe suspect. todo: make async"""
 
-        self.logger.info("membership.investigating", peer=suspect.node_key)
-
         keys = self._failure_detection_subgroup()
         investigators: List[pr.Peer] = []
 
@@ -169,12 +196,24 @@ class Membership:
             peer = self.get_peer(name, addr=addr)
             investigators.append(peer)
 
-        for peer in investigators:
-            ack = peer.membership_ping_req(suspect)
+        self.logger.info(
+            "membership.investigating",
+            peer=suspect.node_key,
+            investigators=[i.node_key for i in investigators],
+        )
 
-            if ack:
-                self._failure_vetoed(suspect, by_peer=peer)
-                return
+        results = {}
+
+        with ThreadPoolExecutor(max_workers=5) as e:
+            for peer in investigators:
+                task = e.submit(peer.membership_ping_req, suspect)
+                results[peer] = task.result()
+
+        for peer, ack in results.items():
+            if not ack:
+                continue
+            self._failure_vetoed(suspect, by_peer=peer)
+            return
 
         self._failure_confirmed(suspect, by_peers=investigators)
 
@@ -184,7 +223,9 @@ class Membership:
         self.logger.info(
             "membership.failure_vetoed", peer=suspect.node_key, by=by_peer.node_key
         )
-        self.suspects.remove(suspect.node_key)
+
+        if suspect.node_key in self.suspects:
+            self.suspects.remove(suspect.node_key)
 
     def _failure_confirmed(self, suspect: pr.Peer, by_peers: List[pr.Peer]):
         """its actually faulty, update and disseminate"""
@@ -196,7 +237,10 @@ class Membership:
         )
 
         self.remove_peer(suspect)
-        self.suspects.remove(suspect.node_key)
+
+        if suspect.node_key in self.suspects:
+            self.suspects.remove(suspect.node_key)
+
         self._gossip()
 
     def _gossip_subgroup(self) -> List[str]:
@@ -211,7 +255,7 @@ class Membership:
 
         peers = self._eligible_peers()
         k = min(self.failure_detection_subgroup_size, len(peers))
-        return sample(self._eligible_peers(), k=k,)
+        return sample(self._eligible_peers(), k=k)
 
     @contextmanager
     def _failure_detection(self, peer: pr.Peer):
@@ -232,12 +276,18 @@ class Membership:
     def _random_peer(self) -> Optional[pr.Peer]:
         """pick a random peer from cluster state"""
 
-        filtered = self._eligible_peers()
+        peers = self._eligible_peers()
+
+        if len(self._choices) >= len(peers):
+            self._choices = set()
+
+        filtered = [i for i in peers if i not in self._choices]
 
         if not filtered:
             return None
 
         key = choice(filtered)
+        self._choices.add(key)
         name, addr = key.split("=")
         return self.get_peer(name=name, addr=addr)
 
@@ -251,7 +301,7 @@ class Membership:
         my_key = self.node_key.encode()
         counter_pad = 100
         now = util.now_ms() * counter_pad
-        i = _STARTUP_GRACE_PERIOD * 1000 * counter_pad
+        i = STARTUP_GRACE_PERIOD * 1000 * counter_pad
 
         return [
             k.decode()
@@ -264,6 +314,14 @@ class Membership:
 
         peer = self.get_peer(peer_name, addr=peer_addr)
         return peer.membership_ping()
+
+    def ping_req(self, peer_name: str, peer_addr: str) -> bool:
+        """handle a ping request from a peer"""
+
+        peer = self.get_peer(peer_name, addr=peer_addr)
+
+        with self._failure_detection(peer):
+            return peer.membership_ping()
 
     def state_sync(
         self, incoming: crdt.LWWRegister, peer_addr: str
@@ -293,32 +351,19 @@ class Membership:
     def stop(self):
         """shut down"""
 
-        self.logger.info("membership.stop")
+        self.suspect_queue.put(None)
         self.stopped = True
+        for thread in self.threads:
+            thread.join()
+        self.logger.info("membership.stop")
 
     def start(self):
         """fire up all components"""
 
-        threads = [
-            Thread(
-                target=self._failure_detection_loop,
-                daemon=True,
-                name="MembershipFailureDetectionThread",
-            ),
-            Thread(
-                target=self._gossip_loop, daemon=True, name="MembershipGossipThread"
-            ),
-            Thread(
-                target=self._investigation_loop,
-                daemon=True,
-                name="MembershipInvestigationThread",
-            ),
-        ]
+        for thread in self.threads:
+            thread.start()
 
         self.logger.info("membership.start")
 
-        for thread in threads:
-            thread.start()
-
-        for thread in threads:
+        for thread in self.threads:
             thread.join()

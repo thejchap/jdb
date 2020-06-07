@@ -7,7 +7,7 @@ from random import getrandbits
 from structlog import get_logger
 from redis import Redis
 import lmdb
-from jdb import db
+from jdb.storage import db
 
 KEY_SIZE = 24
 VAL_SIZE = 8

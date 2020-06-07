@@ -24,5 +24,6 @@ setup(
         "redis",
         "lmdb",
         "sympy",
+        "matplotlib",
     ],
 )

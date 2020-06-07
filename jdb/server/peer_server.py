@@ -42,11 +42,11 @@ class PeerServer(pgrpc.PeerServerServicer):
 
     def MembershipPingReq(self, request, context):
         try:
-            self.node.membership.ping(request.peer_name, request.peer_addr)
+            ack = self.node.membership.ping_req(request.peer_name, request.peer_addr)
         except Exception:  # pylint: disable=broad-except
-            return pb.Ack(ack=False)
+            ack = False
 
-        return pb.Ack(ack=True)
+        return pb.Ack(ack=ack)
 
     def MembershipStateSync(self, request, context):
         incoming = crdt.LWWRegister(replica_id=request.replica_id)
@@ -68,6 +68,7 @@ class PeerServer(pgrpc.PeerServerServicer):
         self.node = node
         self.logger = _LOGGER.bind(addr=addr_str)
         self.addr = addr
+        self.stopped = False
 
         server = grpc.server(
             ThreadPoolExecutor(10, thread_name_prefix="PeerServerThreadPool")
@@ -84,11 +85,13 @@ class PeerServer(pgrpc.PeerServerServicer):
         self.server.start()
         self.logger.msg("peer_server.listening")
 
-        while True:
+        while not self.stopped:
             sleep(1)
 
     def shutdown(self):
         """shut it down"""
 
-        self.logger.msg("peer_server.shutdown")
         self.server.stop(1)
+        self.server.wait_for_termination(10)
+        self.stopped = True
+        self.logger.msg("peer_server.shutdown")

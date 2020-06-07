@@ -1,9 +1,9 @@
 from threading import Thread
 from uuid import uuid4 as uuid
-from typing import Optional
+from typing import Optional, List
 from dataclasses import dataclass, field
 from argparse import ArgumentParser
-from jdb import server, node
+from jdb import server, node as nde
 
 
 @dataclass
@@ -19,7 +19,8 @@ class Server:
     node_name: Optional[str] = str(uuid())
     _client_server: server.ClientServer = field(init=False)
     _peer_server: server.PeerServer = field(init=False)
-    _node: node.Node = field(init=False)
+    _threads: List[Thread] = field(default_factory=list)
+    node: nde.Node = field(init=False)
     p2p_addr: str = field(init=False)
 
     def __post_init__(self):
@@ -29,27 +30,21 @@ class Server:
         self.p2p_addr = p2p_addr
         client_addr = f"{self.host}:{self.port}"
 
-        self._node = node.Node(
+        self.node = nde.Node(
             p2p_addr=p2p_addr, client_addr=client_addr, name=self.node_name
         )
 
-        if self.join:
-            self._node.bootstrap(self.join)
-
         self._client_server = server.ClientServer(
             addr=(self.host, self.port),
-            node=self._node,
+            node=self.node,
             max_connections=self.max_connections,
         )
 
         self._peer_server = server.PeerServer(
-            addr=(self.p2p_host, self.p2p_port), node=self._node
+            addr=(self.p2p_host, self.p2p_port), node=self.node
         )
 
-    def start(self):
-        """fire up server for client comms and p2p comms"""
-
-        threads = [
+        self._threads = [
             Thread(
                 target=self._start_client_server, daemon=True, name="ClientServerThread"
             ),
@@ -59,11 +54,17 @@ class Server:
             Thread(target=self._start_membership, daemon=True, name="MembershipThread"),
         ]
 
-        for thread in threads:
+    def start(self):
+        """fire up server for client comms and p2p comms"""
+
+        if self.join:
+            self.node.bootstrap(self.join)
+
+        for thread in self._threads:
             thread.start()
 
         try:
-            for thread in threads:
+            for thread in self._threads:
                 thread.join()
         except (KeyboardInterrupt, SystemExit):
             self.stop()
@@ -71,9 +72,12 @@ class Server:
     def stop(self):
         """shut it down"""
 
+        self.node.membership.stop()
         self._client_server.shutdown()
         self._peer_server.shutdown()
-        self._node.membership.stop()
+
+        for thread in self._threads:
+            thread.join()
 
     def _start_peer_server(self):
         """start up peer grpc server"""
@@ -83,7 +87,7 @@ class Server:
     def _start_membership(self):
         """start up peer grpc server"""
 
-        self._node.membership.start()
+        self.node.membership.start()
 
     def _start_client_server(self):
         """start up server for client requests"""
