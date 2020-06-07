@@ -1,20 +1,7 @@
 # jdb
 
-## description
-a database for fun
-
-### design
-#### api
-- `put`
-- `get`
-- `delete`
-
 #### journal
-- [node membership/failure detection](https://github.com/thejchap/jdb/blob/master/docs/journal/01_membership.md)
-
-#### tech debt
-- wal/disk
-- functional test for gossip propagation
+- [01_membership](https://github.com/thejchap/jdb/blob/master/docs/journal/01_membership.md)
 
 ## resources
 ### inspo
@@ -58,6 +45,7 @@ a database for fun
 - https://medium.com/@Alibaba_Cloud/in-depth-analysis-on-hlc-based-distributed-transaction-processing-e75dad5f2af8
 ### crdt
 - https://github.com/soundcloud/roshi#crdt
+- https://en.wikipedia.org/wiki/Conflict-free_replicated_data_type#LWW-Element-Set_(Last-Write-Wins-Element-Set)
 ### general
 - http://book.mixu.net/distsys/eventual.html
 - https://hal.inria.fr/file/index/docid/555588/filename/techreport.pdf
