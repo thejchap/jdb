@@ -1,18 +1,17 @@
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import Generic, Optional, Callable
+from typing import Optional
 from jdb import types
 
 
 @dataclass
-class Node(Generic[types.T]):
+class Node:
     """tree nodes"""
 
-    key: types.T
-    comparison_key: Callable
-    left: Optional[Node[types.T]] = None
-    right: Optional[Node[types.T]] = None
-    maximum: Optional[Node[types.T]] = None
+    key: types.IndexEntry
+    left: Optional[Node] = None
+    right: Optional[Node] = None
+    maximum: Optional[Node] = None
     height: int = 1
 
     def __post_init__(self):
@@ -21,22 +20,21 @@ class Node(Generic[types.T]):
         self.maximum = self
 
 
-class AVLTree(Generic[types.T]):
+class AVLTree:
     """avl tree implementation"""
 
-    root: Optional[Node[types.T]] = None
+    root: Optional[Node] = None
 
-    def __init__(self, comparison_key: Callable = lambda x: x):
-        self._cmp = comparison_key
-
-    def search(self, key: types.T, gte: Optional[bool] = False) -> Optional[types.T]:
+    def search(
+        self, key: types.IndexEntry, gte: Optional[bool] = False
+    ) -> Optional[types.IndexEntry]:
         """proxy to root node"""
 
         return self._search(self.root, key=key, gte=gte)
 
     def _search(
-        self, root: Optional[Node[types.T]], key: types.T, gte: Optional[bool] = False
-    ) -> Optional[types.T]:
+        self, root: Optional[Node], key: types.IndexEntry, gte: Optional[bool] = False
+    ) -> Optional[types.IndexEntry]:
         """
         bst search. if gte is true, find exact match or closest node gte search key
         """
@@ -63,27 +61,23 @@ class AVLTree(Generic[types.T]):
 
         return root.key
 
-    def _compare(self, one: types.T, other: types.T) -> int:
+    def _compare(self, one: types.IndexEntry, other: types.IndexEntry) -> int:
         """simple comparator"""
 
-        keyone, keyother = self._cmp(one), self._cmp(other)
-
-        if keyone == keyother:
+        if one[0] == other[0]:
             return 0
-        if keyone < keyother:
+        if one[0] < other[0]:
             return -1
 
         return 1
 
-    def insert(self, key: types.T) -> None:
+    def insert(self, key: types.IndexEntry) -> None:
         """proxy to root node"""
 
-        node = Node[types.T](key=key, comparison_key=self._cmp)
+        node = Node(key=key)
         self.root = self._insert(self.root, node)
 
-    def _insert(
-        self, root: Optional[Node[types.T]], node: Node[types.T]
-    ) -> Node[types.T]:
+    def _insert(self, root: Optional[Node], node: Node) -> Node:
         """bst insert then rebalance if balance factor +/- 2"""
 
         if not root:
@@ -122,7 +116,7 @@ class AVLTree(Generic[types.T]):
 
         return result
 
-    def _left_rotate(self, node: Node[types.T]):
+    def _left_rotate(self, node: Node):
         """l rotate"""
 
         right = node.right
@@ -137,7 +131,7 @@ class AVLTree(Generic[types.T]):
         )
         return right
 
-    def _right_rotate(self, node: Node[types.T]):
+    def _right_rotate(self, node: Node):
         """r rotate"""
 
         left = node.left
@@ -150,7 +144,7 @@ class AVLTree(Generic[types.T]):
         left.height = 1 + max(self._getheight(left.left), self._getheight(left.right))
         return left
 
-    def _getheight(self, node: Optional[Node[types.T]]) -> int:
+    def _getheight(self, node: Optional[Node]) -> int:
         """helper"""
 
         if not node:

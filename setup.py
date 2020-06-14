@@ -25,5 +25,6 @@ setup(
         "lmdb",
         "sympy",
         "matplotlib",
+        "snakeviz",
     ],
 )

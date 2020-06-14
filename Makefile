@@ -44,3 +44,6 @@ bench.db:
 
 bench.membership:
 	@python bin/bench/bench_membership.py
+
+prof:
+	@python bin/prof.py

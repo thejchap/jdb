@@ -14,7 +14,7 @@ class Memtable:
         self._arena = bytearray()
         self._entries_count = 0
         self._offset = 0
-        self._index = avl.AVLTree[types.IndexEntry](comparison_key=lambda x: x[0])
+        self._index = avl.AVLTree()
 
     def put(self, entry: ent.Entry) -> None:
         """append an entry to the log"""

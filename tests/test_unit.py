@@ -25,7 +25,7 @@ def parser(node: nde.Node):
 def tree():
     """index test subject"""
 
-    return db.AVLTree[int]()
+    return db.AVLTree()
 
 
 def test_basic():
@@ -116,51 +116,51 @@ def test_ssi():
 
 
 def test_avl(tree: db.AVLTree):
-    tree.insert(10)
-    tree.insert(20)
-    tree.insert(30)
-    tree.insert(40)
-    tree.insert(50)
-    tree.insert(25)
+    tree.insert((bytes([10]), 0))
+    tree.insert((bytes([20]), 0))
+    tree.insert((bytes([30]), 0))
+    tree.insert((bytes([40]), 0))
+    tree.insert((bytes([50]), 0))
+    tree.insert((bytes([25]), 0))
 
     assert tree.root
-    assert tree.root.key == 30
+    assert int.from_bytes(tree.root.key[0], byteorder="big") == 30
     assert tree.root.left
-    assert tree.root.left.key == 20
+    assert int.from_bytes(tree.root.left.key[0], byteorder="big") == 20
     assert tree.root.left.left
-    assert tree.root.left.left.key == 10
+    assert int.from_bytes(tree.root.left.left.key[0], byteorder="big") == 10
     assert tree.root.left.right
-    assert tree.root.left.right.key == 25
+    assert int.from_bytes(tree.root.left.right.key[0], byteorder="big") == 25
     assert tree.root.right
-    assert tree.root.right.key == 40
+    assert int.from_bytes(tree.root.right.key[0], byteorder="big") == 40
     assert tree.root.right.right
-    assert tree.root.right.right.key == 50
-    assert not tree.search(70)
+    assert int.from_bytes(tree.root.right.right.key[0], byteorder="big") == 50
+    assert not tree.search((bytes([70]), 0))
 
 
 def test_avl_near(tree: db.AVLTree):
-    tree.insert(3)
-    tree.insert(4)
-    tree.insert(1)
+    tree.insert((bytes([3]), 0))
+    tree.insert((bytes([4]), 0))
+    tree.insert((bytes([1]), 0))
 
-    assert tree.search(2, gte=True) == 3
+    assert tree.search((bytes([2]), 0), gte=True) == (bytes([3]), 0)
 
 
 def test_avl_near_2(tree: db.AVLTree):
-    tree.insert(2)
-    tree.insert(1)
-    tree.insert(5)
+    tree.insert((bytes([2]), 0))
+    tree.insert((bytes([1]), 0))
+    tree.insert((bytes([5]), 0))
 
-    assert tree.search(4, gte=True) == 5
+    assert tree.search((bytes([4]), 0), gte=True) == (bytes([5]), 0)
 
 
 def test_avl_near_3(tree: db.AVLTree):
-    tree.insert(5)
-    tree.insert(2)
-    tree.insert(1)
-    tree.insert(3)
+    tree.insert((bytes([5]), 0))
+    tree.insert((bytes([2]), 0))
+    tree.insert((bytes([1]), 0))
+    tree.insert((bytes([3]), 0))
 
-    assert tree.search(3, gte=True) == 3
+    assert tree.search((bytes([3]), 0), gte=True) == (bytes([3]), 0)
 
 
 @mark.skip
