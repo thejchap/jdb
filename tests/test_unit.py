@@ -173,7 +173,6 @@ def test_parse_put():
     assert txn.writes[b"hello"].value == b"world"
 
 
-@mark.skip
 def test_parse_get():
     node = nde.Node()
     parser = jql.JQL(node)

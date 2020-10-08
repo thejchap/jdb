@@ -1,36 +1,26 @@
 # implementing MVCC and SSI in an embedded key-value store
 
+## intro
+
+this is the second post documenting my adventures writing [jdb](https://github.com/thejchap/jdb). jdb is a distributed key-value store written in python. i took on this project to a) learn more about distributed databases and b) get better at writing python. the first post on cluster membership and implementing a gossip protocol can be found [](https://medium.com/@chap/peer-to-peer-cluster-membership-using-the-swim-gossip-protocol-and-crdts-13f9386fe9b4)
+
 ## overview
 
-working on jdb has provided me with an opportunity to not only deepen my understanding of distributed programming in a multi-node environment, but also in a local, multi-threaded environment. i initially considered using an existing solution (for example RocksDB or LevelDB) for embedded per-node storage in jdb, but then was like "why the heck would i do that? this is a learning exercise - might as well learn all i can" so i decided to write one from scratch.
+working on jdb has provided me with an opportunity to not only deepen my understanding of distributed programming in a multi-node environment, but also in a local, multi-threaded environment. i initially considered using an existing solution (for example [RocksDB](https://rocksdb.org/) or [LevelDB](https://en.wikipedia.org/wiki/LevelDB)) for embedded per-node storage in jdb, but decided it would be way more fun to write one myself.
 
-embedded data stores generally have a fairly simple API (put, get, delete) and are intended to be high-performance storage engines. the storage engine on each node in jdb is where data would end up being stored and read from after getting routed around in the cluster to the correct node. i wanted to write one that supported multiple connections, ACID transactions (without the D for now), and MVCC.
+embedded data stores generally have a fairly simple API (put, get, delete) and are intended to be high-performance storage engines. the storage engine on each node in jdb is where data would end up being stored and read from after getting routed around in the cluster to the correct node. i wanted to write one that supported multiple connections, [ACID transactions](https://en.wikipedia.org/wiki/ACID) (without the D for now - everything is just in memory), and [MVCC](https://en.wikipedia.org/wiki/Multiversion_concurrency_control).
 
 ## design
 
-the data store is implemented in a `DB` class that gets opened per-process when jdb starts up. each `DB` instance gets instantiated with an `Oracle` and a `Memtable`. the oracle is the point of entry for transactions, and maintains read/write timestamps for transactions and also tracks dependent keys to support SSI as the transaction isolation level. the memtable maintains the actual data structures that store data that transactions write to. it maintains an index in the form of an AVL tree where the nodes are pointers to the actual raw bytes in an `arena` which is just a byte array of encoded data entries
+the data store is implemented in a `DB` class that gets opened per-process when jdb starts up. each `DB` instance gets instantiated with an `Oracle` and a `Memtable`. the `Oracle` is the point of entry for transactions, and maintains read/write timestamps for transactions and also tracks dependent keys to support [SSI](https://wiki.postgresql.org/wiki/Serializable) as the transaction isolation level. the `Memtable` maintains the actual data structures that store data that transactions write to. the index is maintained in the form of an [AVL tree](https://en.wikipedia.org/wiki/AVL_tree) where the nodes are pointers to the actual raw bytes in an `arena` which is just a byte array of encoded data entries. i chose an AVL tree for the index because it is self-balancing guarantees an upper bound of O(logN) time complexity for all its operations.
 
 ## entries
 
 an instance of the `Entry` class is the most granular level of storage, and represents a key, its value, and metadata. when a transaction commits, the entries included in the transaction get encoded into byte arrays that get appended onto the `arena` (one long byte array that keeps growing). entries can vary in length, and the memtable's index contains pointers to offsets where each chunk of memory lives in the `arena`.
 
-entries are structured as follows:
+encoded entries are laid out in memory as follows:
 
-| block size | meta | key length | value length | key | value | crc32 |
-
-- block size
-  - this is the length of the entire block of data after it has been encoded as a byte array
-- meta
-  - bits that can be flipped internally by the db to add metadata to the transaction
-  - used during a `delete` operation to add a `tombstone` to the entry when appending to the log
-- key length
-- value length
-- key
-- value
-- CRC32
-  - a checksum of the header (meta, key length and value length) and key/value data
-  - when decoding the byte array during a `get` operation, a checksum of the retrieved values is calculated and compared to the persisted one
-  - CRC32 is a standard error-detection code
+![](https://github.com/thejchap/jdb/blob/master/docs/img/journal/02_storage/entry.png?raw=true)
 
 ## serializable snapshot isolation (SSI)
 
@@ -48,3 +38,25 @@ in jdb, the `Oracle` class does the bookkeeping, and is the only logic in the tr
 - `commit_request` - ensures no keys in the list of read operations in this transaction have been modified by other transactions since this transaction started
 
 ## multi-version concurrency control (MVCC)
+
+MVCC provides a consistent point-in-time snapshot of the database to transactions who are reading data. this allows concurrent operations to happen so reads are not blocked by writes, while also ensuring that in-progress transactions don't see half committed data. this is achieved by assigning a monotonically increasing timestamp to transactions (and therefore all writes that occur within that transaction) which gets encoded as part of the `Entry`'s key when it is committed in the `Memtable`.
+
+as stated earlier, the database index is maintained as an AVL tree in which the nodes are pointers to data in the `arena`. the keys in this table are a concatenation of key and timestamp. during a lookup, we traverse the tree and find the key matching the query key which has the latest timestamp prior to the read timestamp on the transaction.
+
+## API
+
+the finished product looks a little something like this in code:
+
+```python
+from jdb.db import DB
+
+db = DB()
+
+with db.transaction() as txn:
+  txn.read(b'foo')
+  txn.write(b'bar', b'baz')
+```
+
+## code
+
+[https://github.com/thejchap/jdb](https://github.com/thejchap/jdb)
