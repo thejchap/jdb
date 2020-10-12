@@ -24,22 +24,24 @@ encoded entries are laid out in memory as follows:
 
 ## serializable snapshot isolation (SSI)
 
-when implementing transactions, i had to choose a transaction isolation level (or levels) to provide to the database user. the isolation level determines, during the execution of a transaction, what data the operations in that transaction are allowed to see. i decided to implement SSI, which is the strictest isolation level, and a relatively new development in databases.
+when implementing transactions, i had to choose a [transaction isolation level](<https://en.wikipedia.org/wiki/Isolation_(database_systems)>) (or levels) to provide to the database user. the isolation level determines, during the execution of a transaction, what data the operations in that transaction are allowed to see. i decided to implement [serializable snapshot isolation](https://wiki.postgresql.org/wiki/SSI) (SSI), which is the strictest isolation level, and a relatively new development in databases.
 
 serializability in database systems is a property which ensures that the outcome of a set of transactions is equal to the outcome as if all the transactions were executed serially (one after the other). this is an extremely important property in areas such as finance, where race conditions during debit and credit operations could cause money disappearing or appearing out of thin air.
 
 when executing transactions one after the other in a single-threaded environment, this is a very easy property to uphold. as with most concepts in programming, the second we add in any sort of concurrent processing, the problem gets a lot more interesting.
 
-snapshot isolation (SI) is a widely used isolation level in which at the beginning of a transaction, the transaction gets assigned a start timestamp, and only sees data that is a result of transactions which have committed prior to that start timestamp. this prevents dirty reads of data that is being modified by other in-flight transactions. SSI builds on top of SI by preventing in-progress writes from modifying keys that other transactions are reading by doing some "bookkeeping" of transaction dependencies.
+[snapshot isolation](https://en.wikipedia.org/wiki/Snapshot_isolation) (SI) is a widely used isolation level in which at the beginning of a transaction, the transaction gets assigned a start timestamp, and only sees data that is a result of transactions which have committed prior to that start timestamp. this prevents dirty reads of data that is being modified by other in-flight transactions. SSI builds on top of SI by preventing in-progress writes from modifying keys that other transactions are reading by doing some "bookkeeping" of transaction dependencies.
 
 in jdb, the `Oracle` class does the bookkeeping, and is the only logic in the transaction commit code path that is not threadsafe. `Oracle` maintains a map of keys to their last commit timestamp and provides 2 public methods:
 
 - `read_ts` - called by transactions when they are instantiated to obtain a start/read timestamp that determines what snapshot of the database they are getting
 - `commit_request` - ensures no keys in the list of read operations in this transaction have been modified by other transactions since this transaction started
 
+![](https://github.com/thejchap/jdb/blob/master/docs/img/journal/02_storage/mermaid-diagram-20201012084711.png?raw=true)
+
 ## multi-version concurrency control (MVCC)
 
-MVCC provides a consistent point-in-time snapshot of the database to transactions who are reading data. this allows concurrent operations to happen so reads are not blocked by writes, while also ensuring that in-progress transactions don't see half committed data. this is achieved by assigning a monotonically increasing timestamp to transactions (and therefore all writes that occur within that transaction) which gets encoded as part of the `Entry`'s key when it is committed in the `Memtable`.
+[multi-version concurrency control](https://en.wikipedia.org/wiki/Multiversion_concurrency_control) (MVCC) provides a consistent point-in-time snapshot of the database to transactions who are reading data. this allows concurrent operations to happen so reads are not blocked by writes, while also ensuring that in-progress transactions don't see half committed data. this is achieved by assigning a monotonically increasing timestamp to transactions (and therefore all writes that occur within that transaction) which gets encoded as part of the `Entry`'s key when it is committed in the `Memtable`.
 
 as stated earlier, the database index is maintained as an AVL tree in which the nodes are pointers to data in the `arena`. the keys in this table are a concatenation of key and timestamp. during a lookup, we traverse the tree and find the key matching the query key which has the latest timestamp prior to the read timestamp on the transaction.
 

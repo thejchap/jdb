@@ -1,0 +1,13 @@
+sequenceDiagram
+	participant txn a
+	participant oracle
+	participant txn b
+    txn a->>+oracle: begin (read ts: 1)
+		Note right of txn a: bar = get('bar'), set('foo', bar + 1)
+    txn b->>+oracle: begin (read ts: 1)
+    Note left of txn b: set('bar', -42)
+    oracle-->>-txn b: commit (commit ts: 2)
+		rect rgba(255,0,0)
+			oracle-->>-txn a: commit (commit ts: 3)
+		end
+		Note right of txn a: txn a aborted - bar was modified by txn b since read ts 1
